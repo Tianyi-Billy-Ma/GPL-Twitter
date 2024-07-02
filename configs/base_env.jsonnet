@@ -31,7 +31,7 @@ local default_cache_folder = 'cache';
     CACHE_DIR: wandb_cache_dir,
     DIR: wandb_dir,
     entity: 'matianyibilly',
-    project: 'GPL-DT',
+    project: 'GPL-Twitter',
     tags: [],
   },
   platform_type: 'pytorch',

@@ -230,14 +230,14 @@ def run(arg_list):
 
 if __name__ == "__main__":
     arg_list = [
-        "configs/twitter/create_twitter_data.jsonnet",
+        "configs/twitter/MP2Vec_twitter.jsonnet",
         "--accelerator",
         "gpu",
         # "--override",
         "--devices",
         "1",
         "--mode",
-        "create_data",
+        "train",
         "--disable_wandb_logging",
         "--opts",
         # "reset=1",

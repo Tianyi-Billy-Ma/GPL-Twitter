@@ -32,7 +32,7 @@ from torch_geometric.datasets import (
     DBLP,
 )
 from torch_geometric.loader import DataLoader
-
+from torch_geometric.data import HeteroData
 from ogb.nodeproppred import PygNodePropPredDataset
 
 from data_loader_manager.data_loader_wrapper import DataLoaderWrapper
@@ -95,9 +95,9 @@ class DataLoaderForGraph(DataLoaderWrapper):
                 relations[(src_node_type, triple[1], tar_node_type)].add(
                     (src_node_id, tar_node_id)
                 )
-                relations[(src_node_type, triple[1], tar_node_type)].add(
-                    (tar_node_id, src_node_id)
-                )
+                # relations[(tar_node_type, triple[1], src_node_type)].add(
+                #     (tar_node_id, src_node_id)
+                # )
             edge_index_dict = {}
             for key, edges in relations.items():
                 src_node_type, relation_type, tar_node_type = key
@@ -111,7 +111,7 @@ class DataLoaderForGraph(DataLoaderWrapper):
                 edge_index_dict[key] = unique_edges
 
             ###  Initialize the data object ###
-            data = pyg.data.HeteroData()
+            data = HeteroData()
             data["user"].x = torch.tensor(user_embeddings)
             data["tweet"].x = torch.tensor(tweet_embeddings)
             data["keyword"].x = torch.tensor(keyword_embeddings)
@@ -123,6 +123,27 @@ class DataLoaderForGraph(DataLoaderWrapper):
             torch.save(data, save_or_load_path)
             logger.info(data.metadata())
             logger.info(f"Data saved to: {save_or_load_path}")
+
+        if "build_metapath_for_MetaPath2Vec" in module_config.config.preprocess:
+            edge_index_dict = data.edge_index_dict
+            new_data = HeteroData()
+            new_data["user"].x = data["user"].x
+            new_data["tweet"].x = data["tweet"].x
+            new_data["keyword"].x = data["keyword"].x
+            new_data["user"].y = data["user"].y
+            for key, edge_index in edge_index_dict.items():
+                src_type, relation_type, dst_type = key
+                assert new_data[src_type].x.shape[0] > edge_index[0, :].max()
+                assert new_data[dst_type].x.shape[0] > edge_index[1, :].max()
+                new_data[
+                    (src_type, relation_type + "-->", dst_type)
+                ].edge_index = edge_index
+
+                new_data[
+                    (dst_type, "<--" + relation_type, src_type)
+                ].edge_index = edge_index[[1, 0], :]
+
+            data = new_data
         dataname = module_config.config.name[0]
         data_dict[dataname.lower()] = data
         self.data.update(data_dict)
