@@ -30,7 +30,7 @@ class MetricsProcessor:
 
         return log_dict
 
-    def compute_accuracy(self, module, data_dict, log_dict):
+    def compute_classification(self, module, data_dict, log_dict):
         y_true = data_dict.y_true
         y_pred = data_dict.y_pred
 

@@ -98,6 +98,7 @@ def main(args):
             patience=config.train.additional.early_stop_patience,
             verbose=True,
             mode=config.train.additional.save_top_k_mode,
+            check_on_train_epoch_end=config.train.additional.check_on_train_epoch_end,
         )
         callback_list.append(early_stop_callback)
 
@@ -136,9 +137,9 @@ def main(args):
         "callbacks": callback_list,
         "plugins": plugins,
         "log_every_n_steps": 10,
-        "check_val_every_n_epoch": None,
-        "deterministic": True,
-        "val_check_interval": config.valid.step_size
+        "check_val_every_n_epoch": config.valid.epoch_size,
+        "deterministic": True
+        # "val_check_interval": float(config.valid.step_size)
         * config.train.additional.gradient_accumulation_steps,  # this is to use global_step as the interval number: global_step * grad_accumulation = batch_idx (val_check_interval is based on batch_idx)
     }
 
@@ -238,7 +239,7 @@ if __name__ == "__main__":
         "1",
         "--mode",
         "train",
-        "--disable_wandb_logging",
+        # "--disable_wandb_logging",
         "--opts",
         # "reset=1",
     ]

@@ -99,7 +99,7 @@ local default_cache_folder = 'cache';
   // cuda: 0,
   // gpu_device: 0,
   train: {
-    type: 'TAPASExecutor',
+    type: '',
     epochs: train_epochs,
     batch_size: train_batch_size,
     lr: lr,
@@ -117,11 +117,13 @@ local default_cache_folder = 'cache';
       save_top_k_metric: 'valid/denotation_accuracy',
       save_top_k_mode: 'max',
       early_stop_patience: early_stop_patience,
+      check_on_train_epoch_end: true,
     },
   },
   valid: {
     batch_size: valid_batch_size,
-    step_size: valid_step_size,
+    epoch_size: 1,
+    step_size: 1.00,
     additional: {
     },
   },
