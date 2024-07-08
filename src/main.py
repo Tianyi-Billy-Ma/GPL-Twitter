@@ -16,6 +16,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 import torch
 
 
@@ -51,7 +52,7 @@ def main(args):
     if config.seed:
         set_seed(config.seed)
         seed_everything(config.seed, workers=True)
-        logger.info(f"All seeds have been set to {config.seed}")
+        logger.info(f"All seeds have been set to 1{config.seed}")
 
     DataLoaderWrapper = globals()[config.data_loader.type]
 
@@ -98,7 +99,7 @@ def main(args):
             patience=config.train.additional.early_stop_patience,
             verbose=True,
             mode=config.train.additional.save_top_k_mode,
-            check_on_train_epoch_end=config.train.additional.check_on_train_epoch_end,
+            check_on_train_epoch_end=True,
         )
         callback_list.append(early_stop_callback)
 
@@ -108,10 +109,7 @@ def main(args):
     plugin_names = config.train.additional.plugins
     plugins = [globals()[plugin_name]() for plugin_name in plugin_names]
 
-    all_loggers = {
-        "TensorBoardLogger": tb_logger,
-        "MetricsHistoryLogger": metrics_history_logger,
-    }
+    all_loggers = [tb_logger, metrics_history_logger]
     if config.args.disable_wandb_logging:
         # Disable logging wandb tables
         config.args.log_prediction_tables = False
@@ -121,7 +119,7 @@ def main(args):
             "init wandb logger with the following settings: {}".format(config.WANDB)
         )
         wandb_logger = WandbLogger(config=config, **config.WANDB)
-        all_loggers["WandbLogger"] = wandb_logger
+        all_loggers.append(wandb_logger)
 
     additional_args = {
         "accumulate_grad_batches": config.train.additional.gradient_accumulation_steps,
@@ -136,13 +134,13 @@ def main(args):
         "limit_test_batches": 2
         if args["limit_test_batches"] is None and config.data_loader.dummy_dataloader
         else args["limit_test_batches"],
-        "logger": list(all_loggers.values()),
+        "logger": all_loggers,
         "callbacks": callback_list,
         "plugins": plugins,
-        "log_every_n_steps": 10,
+        "log_every_n_steps": 1,
         "check_val_every_n_epoch": config.valid.epoch_size,
         "deterministic": True
-        # "val_check_interval": float(config.valid.step_size)
+        # "val_check_interval": config.valid.step_size
         * config.train.additional.gradient_accumulation_steps,  # this is to use global_step as the interval number: global_step * grad_accumulation = batch_idx (val_check_interval is based on batch_idx)
     }
 
@@ -224,29 +222,35 @@ def main(args):
 
 def run(arg_list):
     args = parse_args(arg_list)
-    if args.mode == "run":
-        for run in range(args.num_runs):
-            args.run = run
+    experiment_mode = args.mode
+    for current_run in range(args.num_runs):
+        args.current_run = current_run
+        if experiment_mode == "run":
             for mode in ["train", "test"]:
                 args.mode = mode
                 main(args)
-    else:
-        main(args)
+        else:
+            main(args)
 
 
 if __name__ == "__main__":
     arg_list = [
-        "configs/twitter/MP2Vec_twitter.jsonnet",
+        "configs/twitter/HGMAE_twitter_split_118.jsonnet",
         "--accelerator",
         "gpu",
-        # "--override",
+        "--override",
+        "--num_sanity_val_steps",
+        "0",
         "--devices",
         "1",
+        "--num_runs",
+        "1",
         "--mode",
-        "train",
-        # "--disable_wandb_logging",
+        "run",
+        # "--log_prediction_tables",
+        "--disable_wandb_logging",
         "--opts",
-        # "reset=1",
+        "reset=1",
     ]
 
     # arg_list = [

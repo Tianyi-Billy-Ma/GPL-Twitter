@@ -2,6 +2,7 @@ import pytorch_lightning as pl
 import torch
 import os.path as osp
 import numpy as np
+import wandb
 from easydict import EasyDict
 import torch.nn.functional as F
 import logging
@@ -61,7 +62,7 @@ class MP2VecExecutor(BaseExecutor):
         self.log(
             "train/batch_loss",
             batch_loss,
-            on_step=True,
+            prog_bar=True,
             on_epoch=True,
             logger=True,
             sync_dist=True,
@@ -88,7 +89,7 @@ class MP2VecExecutor(BaseExecutor):
         self.log(
             "train/pred_loss",
             pred_loss,
-            on_step=False,
+            prog_bar=True,
             on_epoch=True,
             logger=True,
             sync_dist=True,
@@ -104,22 +105,38 @@ class MP2VecExecutor(BaseExecutor):
 
     def evaluate_outputs(self, step_outputs, current_data_loader, dataset_name):
         total_loss = np.mean([step_output.batch_loss for step_output in step_outputs])
+        mask = current_data_loader.mask.to(self.device)
         y_true = current_data_loader.y.to(self.device)
-        valid_mask = current_data_loader.mask.to(self.device)
         output = self.model.get_prediction()
-        pred_loss = self.loss_fn(output[valid_mask], y_true[valid_mask])
+        pred_loss = self.loss_fn(output[mask], y_true[mask])
+        y_pred = F.log_softmax(output, dim=1).argmax(dim=-1, keepdim=False)
+
         data_used_for_metrics = EasyDict(
-            y_true=y_true.detach().cpu().numpy(),
-            y_pred=F.log_softmax(output, dim=1)
-            .argmax(dim=-1, keepdim=False)
-            .detach()
-            .cpu()
-            .numpy(),
+            y_true=y_true[mask].detach().cpu().numpy(),
+            y_pred=y_pred[mask].detach().cpu().numpy(),
         )
         log_dict = self.compute_metrics(data_used_for_metrics)
         log_dict["pred_loss"] = pred_loss
         log_dict["total_loss"] = total_loss
+
+        columns = ["user_id", "y_true", "y_pred"]
+        test_table = wandb.Table(columns=columns)
+        for i in range(len(data_used_for_metrics.y_true)):
+            test_table.add_data(
+                i,
+                y_true[mask][i].detach().cpu().numpy().item(),
+                y_pred[mask][i].detach().cpu().numpy().item(),
+            )
+        log_dict.artifacts.test_table = test_table
         return log_dict
+
+    def test_step(self, batch, batch_idx, dataloader_idx=0):
+        batch_loss = self.model(batch).loss
+        return EasyDict(
+            {
+                "batch_loss": batch_loss.detach().cpu().item(),
+            }
+        )
 
     def logging_results(self, log_dict, prefix):
         metrics_to_log = EasyDict()
@@ -130,15 +147,33 @@ class MP2VecExecutor(BaseExecutor):
         metrics_to_log[f"{prefix}/total_loss"] = log_dict.total_loss
         metrics_to_log[f"{prefix}/epoch"] = self.current_epoch
 
+        logger.info(
+            f"Evaluation results [{self.trainer.state.stage}]: {metrics_to_log}"
+        )
         if self.trainer.state.stage in ["sanity_check"]:
             logging.warning("Sanity check mode, not saving to loggers.")
             return
-
         for metric, value in metrics_to_log.items():
             if type(value) in [float, int, np.float64]:
-                self.log(metric, float(value), logger=True, sync_dist=True)
+                self.log(
+                    metric,
+                    float(value),
+                    logger=True,
+                    sync_dist=True,
+                )
             else:
                 logger.info(f"{metric} is not a type that can be logged, skippped.")
+        wandb_artifacts_to_log = dict()
+        wandb_artifacts_to_log.update(
+            {
+                f"predictions/epoch_{self.current_epoch}_MODE_{self.config.mode}_SET_{prefix}": log_dict.artifacts[
+                    "test_table"
+                ]
+            }
+        )
+
+        if self.config.args.log_prediction_tables:
+            self.wandb_logger.experiment.log(wandb_artifacts_to_log, commit=False)
 
     def on_train_end(self):
         save_embeddings = self.model.get_embeddings(self.target_node_type)

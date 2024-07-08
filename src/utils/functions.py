@@ -105,6 +105,34 @@ def create_norm(name):
         return None
 
 
+def sparse_sce_loss(x, y, alpha=3):
+    x = F.normalize(x, p=2, dim=-1)
+    y = F.normalize(y, p=2, dim=-1)
+
+    y_indices = y.nonzero(as_tuple=True)
+
+    x_value = x[y_indices]
+    y_value = y[y_indices]
+    dot_product = x_value * y_value
+
+    y_edge_index = torch.stack(y_indices, dim=0)
+
+    sum_dot_product = torch.zeros(x.shape).to(x.device)
+    sum_dot_product[y_indices] = dot_product
+    sum_dot_product = sum_dot_product.sum(-1)
+    # sum_dot_product = torch.sparse_coo_tensor(y_edge_index, dot_product, x.size()).sum(
+    #     -1
+    # )
+    loss = (torch.ones_like(sum_dot_product) - sum_dot_product).pow_(alpha)
+    # loss = (1 - sum_dot_product.values()).pow_(alpha)
+
+    # Compute the loss
+    # loss = (1 - sum_dot_product).pow_(alpha)
+    loss = loss.mean()
+
+    return loss
+
+
 def sce_loss(x, y, alpha=3):
     x = F.normalize(x, p=2, dim=-1)
     y = F.normalize(y, p=2, dim=-1)

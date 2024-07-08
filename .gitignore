@@ -2,6 +2,7 @@ Data/*
 Experiments/
 Logs/
 wandb/
+.cache
 .vscode/
 GPT-Twitter.code-workspace/
 /__pycache__/

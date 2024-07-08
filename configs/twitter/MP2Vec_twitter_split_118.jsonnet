@@ -13,7 +13,7 @@ local override = {
 
   platform_type: 'pytorch',
   ignore_pretrained_weights: [],
-  experiment_name: 'metapath2vec_twitter',
+  experiment_name: 'metapath2vec_twitter_split_118',
   seed: seed,
   model_config: {
     base_model: 'MetaPath2Vec',
@@ -55,57 +55,65 @@ local override = {
     type: 'DataLoaderForGraph',
     dummy_data_loader: 0,
     additional: {},
-    dataset_modules: [
-      {
-        type: 'LoadTwitterData',
-        option: 'default',
-        config: {
-          preprocess: ['build_metapath_for_MetaPath2Vec'],
-          name: 'metapath2vec_twitter',
-          path: 'TwitterData/',
-        },
+    dataset_modules: {
 
-      },
-      {
-        type: 'LoadDataLoader',
-        option: 'default',
-        path: 'TwitterData/processed/split.pt',
-        use_column: 'metapath2vec_twitter',
-        split_ratio: {
-          train: 0.1,
-          valid: 0.1,
-          test: 0.8,
-        },
-        config: {
-          train: [
-            {
-              dataset_type: 'MetaPath2Vec_twitter',
-              split: 'train',
+      module_list: ['LoadTwitterData', 'LoadSplits', 'LoadDataLoader'],
+      module_dict:
+        {
+          LoadTwitterData: {
+            type: 'LoadTwitterData',
+            option: 'default',
+            config: {
+              preprocess: ['build_metapath_for_MetaPath2Vec'],
+              name: 'twitter',
+              path: 'TwitterData/',
+            },
+          },
+          LoadSplits: {
+            type: 'LoadSplits',
+            option: 'default',
+            path: 'TwitterData/processed/',
+            use_column: 'twitter',
+            split_ratio: {
+              train: 0.1,
+              valid: 0.1,
+              test: 0.8,
+            },
+          },
+          LoadDataLoader: {
+            type: 'LoadDataLoader',
+            option: 'skip',
+            use_column: 'twitter',
+            config: {
+              train: [
+                {
+                  dataset_type: 'MetaPath2Vec_twitter',
+                  split: 'train',
 
+                },
+              ],
+              valid: [
+                {
+                  dataset_type: 'MetaPath2Vec_twitter',
+                  split: 'valid',
+                },
+              ],
+              test: [
+                {
+                  dataset_type: 'MetaPath2Vec_twitter',
+                  split: 'valid',
+                },
+                {
+                  dataset_type: 'MetaPath2Vec_twitter',
+                  split: 'test',
+                },
+              ],
             },
-          ],
-          valid: [
-            {
-              dataset_type: 'MetaPath2Vec_twitter',
-              split: 'valid',
-            },
-          ],
-          test: [
-            {
-              dataset_type: 'MetaPath2Vec_twitter',
-              split: 'valid',
-            },
-            {
-              dataset_type: 'MetaPath2Vec_twitter',
-              split: 'test',
-            },
-          ],
+          },
         },
-      },
-    ],
+    },
   },
   train: {
-    run: 0,
     type: 'MP2VecExecutor',
     epochs: train_epoch,
     batch_size: train_batch_size,
@@ -117,11 +125,10 @@ local override = {
     load_best_model: 0,
     save_interval: save_interval,
     additional: {
-      save_top_k_metric: 'valid/MetaPath2Vec_twitter.valid/accuracy',
+      save_top_k_metric: 'valid/MetaPath2Vec_twitter.valid/f1_weighted',
       save_top_k_mode: 'max',
       target_node_type: 'user',
       early_stop_patience: 5,
-
     },
   },
   valid: {

@@ -62,6 +62,13 @@ def process_config(args):
     config.mode = args.mode
     if args.experiment_name != "":
         config.experiment_name = args.experiment_name
+        config.experiment_group = ""
+    if args.num_runs != -1 and args.current_run != -1:
+        config.num_runs = args.num_runs
+        config.current_run = args.current_run
+        config.experiment_group = config.experiment_name
+        config.experiment_name += f"_run{args.current_run}"
+
     # config.data_loader.dummy_dataloader = args.dummy_dataloader
     # config.train.batch_size = args.batch_size
     # config.train.scheduler = args.scheduler

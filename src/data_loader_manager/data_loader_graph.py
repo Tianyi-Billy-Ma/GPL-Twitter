@@ -16,6 +16,8 @@ import json
 
 from collections import defaultdict
 
+from copy import deepcopy
+
 import torch
 import torch_geometric as pyg
 from torch_geometric.transforms import RandomNodeSplit
@@ -40,6 +42,7 @@ from data_loader_manager.data_loader_wrapper import DataLoaderWrapper
 
 from utils.dirs import load_file
 from utils.functions import create_split_masks
+from torch_geometric.transforms import AddMetaPaths
 
 
 class DataLoaderForGraph(DataLoaderWrapper):
@@ -114,12 +117,12 @@ class DataLoaderForGraph(DataLoaderWrapper):
                     triple = relation_type.split("-")
                     assert src_node_type == triple[0] and tar_node_type == triple[2]
 
-                    relations[(src_node_type, triple[1], tar_node_type)].add(
+                    relations[(src_node_type, triple[1] + "-->", tar_node_type)].add(
                         (src_node_id, tar_node_id)
                     )
-                    # relations[(tar_node_type, triple[1], src_node_type)].add(
-                    #     (tar_node_id, src_node_id)
-                    # )
+                    relations[(tar_node_type, "<--" + triple[1], src_node_type)].add(
+                        (tar_node_id, src_node_id)
+                    )
             edge_index_dict = {}
             for key, edges in relations.items():
                 src_node_type, relation_type, tar_node_type = key
@@ -142,6 +145,18 @@ class DataLoaderForGraph(DataLoaderWrapper):
             for (src_type, relation_type, dst_type), edges in edge_index_dict.items():
                 data[src_type, relation_type, dst_type].edge_index = edges
 
+            if "build_metapath_from_config" in module_config.config.preprocess:
+                metapaths = [
+                    [(src, rel, dst) for src, rel, dst in metapath]
+                    for metapath in module_config.config.metapaths
+                ]
+                data = AddMetaPaths(
+                    metapaths,
+                    max_sample=5,
+                    drop_orig_edge_types=True,
+                    keep_same_node_type=True,
+                )(data)
+
             torch.save(data, save_or_load_path)
             logger.info(data.metadata())
             logger.info(f"Data saved to: {save_or_load_path}")
@@ -150,25 +165,63 @@ class DataLoaderForGraph(DataLoaderWrapper):
         data_dict[dataname.lower()] = data
         self.data.update(data_dict)
 
+    def LoadPositionEmb(self, model_config):
+        data_path = osp.join(self.config.DATA_FOLDER, model_config.path)
+        file_name = model_config.config.file_name
+        save_or_load_path = osp.join(data_path, file_name)
+        assert osp.isfile(save_or_load_path), f"{save_or_load_path} does not exist"
+        position_emb = torch.load(save_or_load_path)
+
+        use_column = model_config.use_column
+        node_type = model_config.config.node_type
+        self.data[use_column][node_type].p_x = position_emb
+        print()
+
+    def LoadSplits(self, module_config):
+        option = module_config.option
+        use_column = module_config.use_column
+        target_node_type = self.config.train.additional.target_node_type
+        save_or_load_path = osp.join(
+            self.config.DATA_FOLDER,
+            module_config.path,
+            f"split_{module_config.use_column}_{self.config.num_runs}.pt",
+        )
+        if osp.exists(save_or_load_path) and option == "default":
+            loaded_split_masks = torch.load(save_or_load_path)
+            assert len(loaded_split_masks) == self.config.num_runs
+        else:
+            y_true = self.data[use_column][target_node_type].y
+            loaded_split_masks = {}
+            for current_run in range(self.config.num_runs):
+                loaded_split_masks[current_run] = create_split_masks(
+                    y_true, **module_config.split_ratio
+                )
+            torch.save(loaded_split_masks, save_or_load_path)
+        self.splits[use_column] = loaded_split_masks[self.config.current_run]
+
     def LoadDataLoader(self, module_config):
         option = module_config.option
         use_column = module_config.use_column
         target_node_type = self.config.train.additional.target_node_type
-        save_or_load_path = osp.join(self.config.DATA_FOLDER, module_config.path)
-        if osp.exists(save_or_load_path) and option == "default":
-            split_masks = torch.load(save_or_load_path)
-        else:
-            y_true = self.data[use_column][target_node_type].y
-            split_masks = create_split_masks(y_true, **module_config.split_ratio)
-            torch.save(split_masks, save_or_load_path)
         for mode in module_config.config.keys():
             for data_config in module_config.config[mode]:
                 use_split = data_config.split
                 dataset_type = data_config.dataset_type
-                data_loader = self.data[use_column]
-                data_loader[target_node_type].mask = split_masks[use_split]
-                loader_name = f"{mode}/{dataset_type}.{use_split}"
-                self.data_loaders[mode][loader_name] = data_loader
+                if option == "skip":
+                    data_loader = deepcopy(self.data[use_column])
+                    loader_name = f"{mode}/{dataset_type}.{use_split}"
+                    self.data_loaders[mode][loader_name] = data_loader
+                    self.data_loaders[mode][loader_name][
+                        target_node_type
+                    ].mask = self.splits[use_column][use_split]
+                else:
+                    data_loader = deepcopy(self.data[use_column])
+                    data_loader[target_node_type].mask = self.splits[use_column][
+                        use_split
+                    ]
+                    data_loader = DataLoader([data_loader])
+                    loader_name = f"{mode}/{dataset_type}.{use_split}"
+                    self.data_loaders[mode][loader_name] = data_loader
                 logger.info(
                     f"[Data Statistics]: {mode} data loader: {loader_name} {len(data_loader)}"
                 )

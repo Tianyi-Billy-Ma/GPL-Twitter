@@ -168,20 +168,18 @@ def initialization(args):
             path=f"{config.WANDB.entity}/{config.WANDB.project}",
             filters={"config.experiment_name": config.experiment_name},
         )
-        if (
-            config.reset
-            and config.mode == "train"
-            and delete_confirm == "y"
-            and config.train.run == 0
-        ):
+
+        if config.reset and config.mode == "train" and delete_confirm == "y":
             reset_wandb_runs(all_runs)
-            config.WANDB.group = config.experiment_name
-            config.WANDB.name = f"run_{config.run}"
+            config.WANDB.name = config.experiment_name
         else:
-            if len(all_runs) > 0 and len(all_runs) >= config.run + 1:
-                config.WANDB.id = all_runs[config.train.run].id
-                config.WANDB.resume = "never"
-            config.WANDB.group = config.experiment_name
-            config.WANDB.name = f"run_{config.run}"
+            if len(all_runs) > 0:
+                config.WANDB.id = all_runs[0].id
+                config.WANDB.resume = "must"
+                config.WANDB.name = config.experiment_name
+            else:
+                config.WANDB.name = config.experiment_name
+        if config.experiment_group:
+            config.WANDB.group = config.experiment_group
     logger.info(f"Initialization done with the config: {str(config)}")
     return config

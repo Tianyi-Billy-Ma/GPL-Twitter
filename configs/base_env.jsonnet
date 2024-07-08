@@ -102,7 +102,6 @@ local default_cache_folder = 'cache';
     type: '',
     epochs: train_epochs,
     batch_size: train_batch_size,
-    run: 0,
     lr: lr,
     adam_epsilon: adam_epsilon,
     load_epoch: -1,
@@ -130,10 +129,11 @@ local default_cache_folder = 'cache';
   },
   test: {
     evaluation_name: 'test_evaluation',
-    load_epoch: -1,
     batch_size: test_batch_size,
     num_evaluation: 0,
+    load_epoch: -1,
     load_model_path: '',
+    load_best_model: 0,
     additional: {
       multiprocessing: 4,
     },
