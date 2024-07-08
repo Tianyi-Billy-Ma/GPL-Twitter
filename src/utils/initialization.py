@@ -51,7 +51,7 @@ def get_checkpoint_model_path(
 
 def initialization(args):
     # Check if the mode is valid
-    assert args.mode in ["create_data", "train", "test", "run"]
+    assert args.mode in ["create_data", "train", "test"]
 
     # ======================= Process Config =======================
     config = process_config(args)
@@ -168,15 +168,20 @@ def initialization(args):
             path=f"{config.WANDB.entity}/{config.WANDB.project}",
             filters={"config.experiment_name": config.experiment_name},
         )
-        if config.reset and config.mode == "train" and delete_confirm == "y":
+        if (
+            config.reset
+            and config.mode == "train"
+            and delete_confirm == "y"
+            and config.train.run == 0
+        ):
             reset_wandb_runs(all_runs)
-            config.WANDB.name = config.experiment_name
+            config.WANDB.group = config.experiment_name
+            config.WANDB.name = f"run_{config.run}"
         else:
-            if len(all_runs) > 0:
-                config.WANDB.id = all_runs[0].id
-                config.WANDB.resume = "must"
-                config.WANDB.name = config.experiment_name
-            else:
-                config.WANDB.name = config.experiment_name
+            if len(all_runs) > 0 and len(all_runs) >= config.run + 1:
+                config.WANDB.id = all_runs[config.train.run].id
+                config.WANDB.resume = "never"
+            config.WANDB.group = config.experiment_name
+            config.WANDB.name = f"run_{config.run}"
     logger.info(f"Initialization done with the config: {str(config)}")
     return config

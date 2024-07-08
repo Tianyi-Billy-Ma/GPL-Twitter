@@ -105,6 +105,7 @@ local override = {
     ],
   },
   train: {
+    run: 0,
     type: 'MP2VecExecutor',
     epochs: train_epoch,
     batch_size: train_batch_size,

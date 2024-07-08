@@ -102,6 +102,7 @@ local default_cache_folder = 'cache';
     type: '',
     epochs: train_epochs,
     batch_size: train_batch_size,
+    run: 0,
     lr: lr,
     adam_epsilon: adam_epsilon,
     load_epoch: -1,

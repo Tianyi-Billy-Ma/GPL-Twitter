@@ -83,7 +83,16 @@ def parse_args(args_list=None):
         default=None,
         nargs=argparse.REMAINDER,
     )
-
+    arg_parser.add_argument(
+        "--num_runs",
+        help="Number of runs to perform",
+        default=5,
+    )
+    arg_parser.add_argument(
+        "--run",
+        help="Number of runs to perform",
+        default=0,
+    )
     # ===== Args for pl===== #
     arg_parser.add_argument("--accelerator", type=str, default="gpu")
     arg_parser.add_argument("--devices", type=int, default=1)

@@ -108,7 +108,10 @@ def main(args):
     plugin_names = config.train.additional.plugins
     plugins = [globals()[plugin_name]() for plugin_name in plugin_names]
 
-    all_loggers = [tb_logger, metrics_history_logger]
+    all_loggers = {
+        "TensorBoardLogger": tb_logger,
+        "MetricsHistoryLogger": metrics_history_logger,
+    }
     if config.args.disable_wandb_logging:
         # Disable logging wandb tables
         config.args.log_prediction_tables = False
@@ -118,7 +121,7 @@ def main(args):
             "init wandb logger with the following settings: {}".format(config.WANDB)
         )
         wandb_logger = WandbLogger(config=config, **config.WANDB)
-        all_loggers.append(wandb_logger)
+        all_loggers["WandbLogger"] = wandb_logger
 
     additional_args = {
         "accumulate_grad_batches": config.train.additional.gradient_accumulation_steps,
@@ -133,7 +136,7 @@ def main(args):
         "limit_test_batches": 2
         if args["limit_test_batches"] is None and config.data_loader.dummy_dataloader
         else args["limit_test_batches"],
-        "logger": all_loggers,
+        "logger": list(all_loggers.values()),
         "callbacks": callback_list,
         "plugins": plugins,
         "log_every_n_steps": 10,
@@ -221,10 +224,12 @@ def main(args):
 
 def run(arg_list):
     args = parse_args(arg_list)
-    if args.mode == "train+test":
-        for mode in ["train", "test"]:
-            args.mode = mode
-            main(args)
+    if args.mode == "run":
+        for run in range(args.num_runs):
+            args.run = run
+            for mode in ["train", "test"]:
+                args.mode = mode
+                main(args)
     else:
         main(args)
 
