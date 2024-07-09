@@ -55,7 +55,7 @@ class HeCo(nn.Module):
         return loss
 
     def get_embeds(self, batch):
-        feat = batch.x_dict[batch.target_node_type]
+        feat = batch[batch.target_node_type].x
         mp_edge_index = [batch[mp_type].edge_index for mp_type in batch.metapath_dict]
 
         z_mp = F.elu(self.mappings[0](feat))
