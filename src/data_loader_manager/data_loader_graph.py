@@ -37,7 +37,6 @@ from torch_geometric.datasets import (
 from torch_geometric.loader import DataLoader
 from torch_geometric.data import HeteroData
 import torch_geometric.transforms as T
-from ogb.nodeproppred import PygNodePropPredDataset
 
 from data_loader_manager.data_loader_wrapper import DataLoaderWrapper
 
