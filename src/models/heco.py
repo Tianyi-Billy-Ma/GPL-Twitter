@@ -87,29 +87,34 @@ class Contrast(nn.Module):
             torch.sum(matrix_mp2sc, dim=1).view(-1, 1) + 1e-8
         )
 
-        pos = pos.coalesce()
-        indices = pos.indices()
-        values = pos.values()
+        # pos = pos.coalesce()
+        # indices = pos.indices()
+        # values = pos.values()
 
-        matrix_mp2sc_values = values * matrix_mp2sc[indices[0], indices[1]]
-        matrix_mp2sc = torch.sparse_coo_tensor(
-            indices, matrix_mp2sc_values, matrix_mp2sc.size()
-        ).to_dense()
+        # matrix_mp2sc_values = values * matrix_mp2sc[indices[0], indices[1]]
+        # matrix_mp2sc = torch.sparse_coo_tensor(
+        #     indices, matrix_mp2sc_values, matrix_mp2sc.size()
+        # ).to_dense()
+        # lori_mp = -torch.log(matrix_mp2sc.sum(dim=-1).to_dense()).mean()
 
-        # lori_mp = -torch.log(matrix_mp2sc.mul(pos).sum(dim=-1).to_dense()).mean()
-        lori_mp = -torch.log(matrix_mp2sc.sum(dim=-1).to_dense()).mean()
+        lori_mp = -torch.log(
+            matrix_mp2sc.mul(pos.to_dense()).sum(dim=-1).to_dense()
+        ).mean()
 
         matrix_sc2mp = matrix_sc2mp / (
             torch.sum(matrix_sc2mp, dim=1).view(-1, 1) + 1e-8
         )
 
-        matrix_sc2mp_values = values * matrix_sc2mp[indices[0], indices[1]]
-        matrix_sc2mp = torch.sparse_coo_tensor(
-            indices, matrix_sc2mp_values, matrix_sc2mp.size()
-        ).to_dense()
+        # matrix_sc2mp_values = values * matrix_sc2mp[indices[0], indices[1]]
+        # matrix_sc2mp = torch.sparse_coo_tensor(
+        #     indices, matrix_sc2mp_values, matrix_sc2mp.size()
+        # ).to_dense()
+        # lori_sc = -torch.log(matrix_sc2mp.sum(dim=-1).to_dense()).mean()
 
-        # lori_sc = -torch.log(matrix_sc2mp.mul(pos).sum(dim=-1).to_dense()).mean()
-        lori_sc = -torch.log(matrix_sc2mp.sum(dim=-1).to_dense()).mean()
+        lori_sc = -torch.log(
+            matrix_sc2mp.mul(pos.to_dense()).sum(dim=-1).to_dense()
+        ).mean()
+
         return self.lam * lori_mp + (1 - self.lam) * lori_sc
 
 
