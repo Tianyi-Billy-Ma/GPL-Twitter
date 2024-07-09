@@ -76,8 +76,8 @@ class HeCoExecutor(BaseExecutor):
         embs = self.model.get_embeds(batch)
         embs = self.classifier(embs)
         data_to_return = EasyDict()
-        
-        data_to_return["train_loss"] = train_loss.item()
+
+        data_to_return["val_loss"] = train_loss.item()
 
         mask = batch[self.target_node_type].mask
         y_true = batch[self.target_node_type].y
@@ -87,21 +87,18 @@ class HeCoExecutor(BaseExecutor):
         y_pred = torch.argmax(logits, dim=1)
 
         data_to_return["pred_loss"] = pred_loss.item()
-        data_to_return["y_true"] = y_true.detach().cpu().numpy()
-        data_to_return["y_pred"] = y_pred.detach().cpu().numpy()
+        data_to_return["y_true"] = y_true[mask].detach().cpu().numpy()
+        data_to_return["y_pred"] = y_pred[mask].detach().cpu().numpy()
 
         return data_to_return
 
     def test_step(self, batch, batch_idx, dataloader_idx=0):
-        loss_dict = self.model(batch)
+        train_loss = self.model(batch)
         embs = self.model.get_embeds(batch)
         embs = self.classifier(embs)
         data_to_return = EasyDict()
-        total_loss = 0
-        for loss_name, loss_val in loss_dict.items():
-            data_to_return[loss_name] = loss_val.item()
-            total_loss += loss_val * self.loss_weights[f"{loss_name}_weight"]
-        data_to_return["total_loss"] = total_loss.item()
+
+        data_to_return["val_loss"] = train_loss.item()
 
         mask = batch[self.target_node_type].mask
         y_true = batch[self.target_node_type].y
@@ -111,8 +108,8 @@ class HeCoExecutor(BaseExecutor):
         y_pred = torch.argmax(logits, dim=1)
 
         data_to_return["pred_loss"] = pred_loss.item()
-        data_to_return["y_true"] = y_true.detach().cpu().numpy()
-        data_to_return["y_pred"] = y_pred.detach().cpu().numpy()
+        data_to_return["y_true"] = y_true[mask].detach().cpu().numpy()
+        data_to_return["y_pred"] = y_pred[mask].detach().cpu().numpy()
 
         return data_to_return
 
