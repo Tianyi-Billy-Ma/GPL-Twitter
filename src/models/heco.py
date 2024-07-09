@@ -54,6 +54,14 @@ class HeCo(nn.Module):
         loss = self.contrast(z_mp, z_sc, pos)
         return loss
 
+    def get_embeds(self, batch):
+        feat = batch.x_dict[batch.target_node_type]
+        mp_edge_index = [batch[mp_type].edge_index for mp_type in batch.metapath_dict]
+
+        z_mp = F.elu(self.mappings[0](feat))
+        z_mp = self.mp(z_mp, mp_edge_index)
+        return z_mp.detach()
+
 
 class Contrast(nn.Module):
     def __init__(self, hidden_dim, tau, lam):
