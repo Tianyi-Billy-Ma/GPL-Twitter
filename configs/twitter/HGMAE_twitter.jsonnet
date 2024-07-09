@@ -9,14 +9,14 @@ local train_batch_size = 128;
 local valid_batch_size = 128;
 local test_batch_size = 128;
 
-local dropout = 0.8;
+local dropout = 0.5;
 local save_interval = 1;
 
 local override = {
 
   platform_type: 'pytorch',
   ignore_pretrained_weights: [],
-  experiment_name: 'hgmae_twitter_split_118',
+  experiment_name: 'hgmae_twitter',
   seed: seed,
   model_config: {
     base_model: 'HGMAE',
@@ -51,11 +51,6 @@ local override = {
       hidden_dim: 64,
       dropout: 0.2,
     },
-    ClassifierModelClass: 'LogReg',
-    ClassifierModelConfig: {
-      input_dim: 256,
-      num_classes: 4,
-    },
     additional: {
       loss_fn: 'sce',
       alpha_l: 3,
@@ -67,7 +62,6 @@ local override = {
       pfp_loss_weight: 0.5,
       mer_loss_weight: 0.5,
     },
-
   },
   data_loader: {
     type: 'DataLoaderForGraph',
@@ -116,7 +110,7 @@ local override = {
           },
           LoadSplits: {
             type: 'LoadSplits',
-            option: 'reload',
+            option: 'default',
             path: 'TwitterData/processed/',
             use_column: 'twitter',
             split_ratio: {
@@ -132,24 +126,24 @@ local override = {
             config: {
               train: [
                 {
-                  dataset_type: 'HGMAE_twitter',
+                  dataset_type: 'MLP_twitter',
                   split: 'train',
 
                 },
               ],
               valid: [
                 {
-                  dataset_type: 'HGMAE_twitter',
+                  dataset_type: 'MLP_twitter',
                   split: 'valid',
                 },
               ],
               test: [
                 {
-                  dataset_type: 'HGMAE_twitter',
+                  dataset_type: 'MLP_twitter',
                   split: 'valid',
                 },
                 {
-                  dataset_type: 'HGMAE_twitter',
+                  dataset_type: 'MLP_twitter',
                   split: 'test',
                 },
               ],
@@ -170,10 +164,11 @@ local override = {
     load_best_model: 0,
     save_interval: save_interval,
     additional: {
-      save_top_k_metric: 'valid/HGMAE_twitter.valid/f1_macro',
+      save_top_k_metric: 'valid/HGMAE_twitter.valid/f1_weighted',
+      // save_top_k_metric: 'train/total_loss',
       save_top_k_mode: 'max',
       target_node_type: 'user',
-      early_stop_patience: 100,
+      early_stop_patience: 10,
     },
   },
   valid: {

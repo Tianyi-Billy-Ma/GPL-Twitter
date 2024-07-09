@@ -235,7 +235,10 @@ def run(arg_list):
 
 if __name__ == "__main__":
     arg_list = [
-        "configs/twitter/HGMAE_twitter_split_118.jsonnet",
+        # "configs/twitter/HGMAE_twitter_split_118.jsonnet",
+        # "configs/twitter/MP2Vec_twitter_split_118.jsonnet",
+        # "configs/twitter/iHGT_twitter_split_118.jsonnet",
+        "configs/twitter/HeCo_twitter_split_118.jsonnet",
         "--accelerator",
         "gpu",
         "--override",

@@ -7,10 +7,14 @@ from easydict import EasyDict
 import torch.nn.functional as F
 import logging
 
+logger = logging.getLogger(__name__)
+import torch.nn as nn
+
 from trainers.base_executor import BaseExecutor
 
 
 from models.hgmae import HGMAE
+from models.base import LogReg
 
 
 class HGMAEExecutor(BaseExecutor):
@@ -22,20 +26,25 @@ class HGMAEExecutor(BaseExecutor):
 
         ModelClass = globals()[self.config.model_config.ModelClass]
 
-        num_metapath = len(data_loader.data[self.dataname].metapath_dict)
-        focused_feature_dim = data_loader.data[self.dataname][
-            self.target_node_type
-        ].x.shape[1]
-
-        self.model = ModelClass(config, num_metapath, focused_feature_dim)
+        model_config = self.config.model_config
+        self.model = ModelClass(model_config)
+        self.classifier = LogReg(**self.config.model_config.ClassifierModelConfig)
         self.loss_weights = EasyDict(self.config.model_config.loss_weights)
+        self.loss_fn = F.nll_loss
+
+        self.automatic_optimization = False
 
     def configure_optimizers(self):
-        self.optimizer = torch.optim.SparseAdam(
+        model_optimizer = torch.optim.Adam(
             list(self.model.encoder.parameters()),
             lr=self.config.train.lr,
         )
-        return {"optimizer": self.optimizer}
+        classifier_optimizer = torch.optim.Adam(
+            list(self.classifier.parameters()),
+            lr=self.config.train.lr,
+            weight_decay=self.config.train.wd,
+        )
+        return [model_optimizer, classifier_optimizer]
 
     def train_dataloader(self):
         self.train_dataloader_names = list(
@@ -56,30 +65,116 @@ class HGMAEExecutor(BaseExecutor):
         return self.test_dataloaders
 
     def training_step(self, batch, batch_idx):
+        model_optimizer, classifier_optimizer = self.optimizers()
+        data_to_log = EasyDict()
         loss_dict = self.model(batch)
 
         total_loss = 0
         for loss_name, loss_val in loss_dict.items():
-            self.log(
-                f"train/{loss_name}",
-                loss_val.item(),
-                prog_bar=True,
-                # on_epoch=True,
-                logger=True,
-                sync_dist=True,
-            )
+            data_to_log[f"train/{loss_name}"] = loss_val.item()
             total_loss += loss_val * self.loss_weights[f"{loss_name}_weight"]
 
-        self.log(
-            "train/total_loss",
-            total_loss.item(),
-            prog_bar=True,
-            # on_epoch=True,
-            logger=True,
-            sync_dist=True,
-        )
+        data_to_log["train/total_loss"] = total_loss.item()
 
-        data_to_return = {
-            "loss": total_loss,
-        }
+        model_optimizer.zero_grad()
+        self.manual_backward(total_loss)
+        model_optimizer.step()
+
+        mask = batch[self.target_node_type].mask
+        y_true = batch[self.target_node_type].y
+        embs = self.model.get_embeds(batch)
+        output = self.classifier(embs)
+        logits = F.log_softmax(output, dim=1)
+        loss = self.loss_fn(logits[mask], y_true[mask])
+        data_to_log["train/classifier_loss"] = loss.item()
+
+        classifier_optimizer.zero_grad()
+        self.manual_backward(loss)
+        classifier_optimizer.step()
+
+        self.log_dict(data_to_log, prog_bar=True, logger=True, sync_dist=True)
+
+    def validation_step(self, batch, batch_idx, dataloader_idx=0):
+        loss_dict = self.model(batch)
+        embs = self.model.get_embeds(batch)
+        embs = self.classifier(embs)
+        data_to_return = EasyDict()
+        total_loss = 0
+        for loss_name, loss_val in loss_dict.items():
+            data_to_return[loss_name] = loss_val.item()
+            total_loss += loss_val * self.loss_weights[f"{loss_name}_weight"]
+        data_to_return["total_loss"] = total_loss.item()
+
+        mask = batch[self.target_node_type].mask
+        y_true = batch[self.target_node_type].y
+
+        logits = F.log_softmax(embs, dim=1)
+        pred_loss = self.loss_fn(logits[mask], y_true[mask])
+        y_pred = torch.argmax(logits, dim=1)
+
+        data_to_return["pred_loss"] = pred_loss.item()
+        data_to_return["y_true"] = y_true.detach().cpu().numpy()
+        data_to_return["y_pred"] = y_pred.detach().cpu().numpy()
+
         return data_to_return
+
+    def test_step(self, batch, batch_idx, dataloader_idx=0):
+        loss_dict = self.model(batch)
+        embs = self.model.get_embeds(batch)
+        embs = self.classifier(embs)
+        data_to_return = EasyDict()
+        total_loss = 0
+        for loss_name, loss_val in loss_dict.items():
+            data_to_return[loss_name] = loss_val.item()
+            total_loss += loss_val * self.loss_weights[f"{loss_name}_weight"]
+        data_to_return["total_loss"] = total_loss.item()
+
+        mask = batch[self.target_node_type].mask
+        y_true = batch[self.target_node_type].y
+
+        logits = F.log_softmax(embs, dim=1)
+        pred_loss = self.loss_fn(logits[mask], y_true[mask])
+        y_pred = torch.argmax(logits, dim=1)
+
+        data_to_return["pred_loss"] = pred_loss.item()
+        data_to_return["y_true"] = y_true.detach().cpu().numpy()
+        data_to_return["y_pred"] = y_pred.detach().cpu().numpy()
+
+        return data_to_return
+
+    def evaluate_outputs(self, step_outputs, current_data_loader, dataset_name):
+        data_used_for_metrics = EasyDict(
+            y_true=step_outputs.y_true,
+            y_pred=step_outputs.y_pred,
+        )
+        log_dict = self.compute_metrics(data_used_for_metrics)
+
+        for key, val in step_outputs.items():
+            if key.endswith("loss"):
+                log_dict[key] = val
+
+        return log_dict
+
+    def logging_results(self, log_dict, prefix):
+        metrics_to_log = EasyDict()
+
+        for metric, value in log_dict.metrics.items():
+            metrics_to_log[f"{prefix}/{metric}"] = value
+        metrics_to_log[f"{prefix}/epoch"] = self.current_epoch
+
+        logger.info(
+            f"Evaluation results [{self.trainer.state.stage}]: {metrics_to_log}"
+        )
+        if self.trainer.state.stage in ["sanity_check"]:
+            logging.warning("Sanity check mode, not saving to loggers.")
+            return
+        for metric, value in metrics_to_log.items():
+            if type(value) in [float, int, np.float64]:
+                self.log(
+                    metric,
+                    float(value),
+                    logger=True,
+                    sync_dist=True,
+                )
+            else:
+                logger.info(f"{metric} is not a type that can be logged, skippped.")

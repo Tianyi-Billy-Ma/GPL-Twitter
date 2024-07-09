@@ -83,12 +83,13 @@ class MP2VecExecutor(BaseExecutor):
         y_true = current_data_loader.y.to(self.device)
         train_mask = current_data_loader.mask.to(self.device)
         output = self.model.get_prediction()
-        pred_loss = self.loss_fn(output[train_mask], y_true[train_mask])
+        logits = F.log_softmax(output, dim=1)
+        pred_loss = self.loss_fn(logits[train_mask], y_true[train_mask])
         pred_loss.backward()
         optimizer.step()
         self.log(
             "train/pred_loss",
-            pred_loss,
+            pred_loss.item(),
             prog_bar=True,
             on_epoch=True,
             logger=True,
@@ -108,15 +109,16 @@ class MP2VecExecutor(BaseExecutor):
         mask = current_data_loader.mask.to(self.device)
         y_true = current_data_loader.y.to(self.device)
         output = self.model.get_prediction()
-        pred_loss = self.loss_fn(output[mask], y_true[mask])
-        y_pred = F.log_softmax(output, dim=1).argmax(dim=-1, keepdim=False)
+        logits = F.log_softmax(output, dim=1)
+        pred_loss = self.loss_fn(logits[mask], y_true[mask])
+        y_pred = logits.argmax(dim=-1, keepdim=False)
 
         data_used_for_metrics = EasyDict(
             y_true=y_true[mask].detach().cpu().numpy(),
             y_pred=y_pred[mask].detach().cpu().numpy(),
         )
         log_dict = self.compute_metrics(data_used_for_metrics)
-        log_dict["pred_loss"] = pred_loss
+        log_dict["pred_loss"] = pred_loss.item()
         log_dict["total_loss"] = total_loss
 
         columns = ["user_id", "y_true", "y_pred"]
@@ -184,3 +186,15 @@ class MP2VecExecutor(BaseExecutor):
         torch.save(save_embeddings, save_path)
         logger.info(f"Embeddings saved to: {save_path}")
         super().on_train_end()
+
+    def on_validation_epoch_start(self):
+        self.validation_step_outputs = [[] for _ in range(len(self.val_dataloader()))]
+
+    def on_validation_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0):
+        self.validation_step_outputs[dataloader_idx].append(outputs)
+
+    def on_test_epoch_start(self):
+        self.test_step_outputs = [[] for _ in range(len(self.test_dataloader()))]
+
+    def on_test_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0):
+        self.test_step_outputs[dataloader_idx].append(outputs)

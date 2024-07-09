@@ -13,7 +13,7 @@ import functools
 from easydict import EasyDict
 import pandas as pd
 import json
-
+import numpy as np
 from collections import defaultdict
 
 from copy import deepcopy
@@ -21,6 +21,7 @@ from copy import deepcopy
 import torch
 import torch_geometric as pyg
 from torch_geometric.transforms import RandomNodeSplit
+from torch_geometric.utils import to_torch_sparse_tensor
 from torch_geometric.datasets import (
     WikiCS,
     Planetoid,
@@ -52,7 +53,7 @@ class DataLoaderForGraph(DataLoaderWrapper):
     def LoadTwitterData(self, module_config):
         data_path = osp.join(self.config.DATA_FOLDER, module_config.config.path)
         save_or_load_path = osp.join(
-            data_path, "processed", f"{module_config.config.name}.pt"
+            data_path, "processed", f"{module_config.config.save_or_load_name}.pt"
         )
         data_dict = EasyDict({})
         if osp.exists(save_or_load_path) and module_config.option == "default":
@@ -145,6 +146,49 @@ class DataLoaderForGraph(DataLoaderWrapper):
             for (src_type, relation_type, dst_type), edges in edge_index_dict.items():
                 data[src_type, relation_type, dst_type].edge_index = edges
 
+            if "build_baseline" in module_config.config.preprocess:
+                edge_types = data.edge_types
+                pos = [[], []]
+                nei_t = [set() for i in range(data["user"].num_nodes)]
+                nei_k = [set() for i in range(data["user"].num_nodes)]
+                for edge_type in edge_types:
+                    if edge_type[0] == "user" and edge_type[2] == "user":
+                        row, col = data[edge_type].edge_index
+                        for row_id, col_id in zip(row, col):
+                            pos[0].append(row_id.item())
+                            pos[1].append(col_id.item())
+                            pos[0].append(col_id.item())
+                            pos[1].append(row_id.item())
+                    elif edge_type[0] == "user" and edge_type[2] == "tweet":
+                        row, col = data[edge_type].edge_index
+                        for row_id, col_id in zip(row, col):
+                            nei_t[row_id].add(col_id.item())
+                    elif edge_type[2] == "user" and edge_type[0] == "tweet":
+                        row, col = data[edge_type].edge_index
+                        for row_id, col_id in zip(row, col):
+                            nei_t[col_id].add(row_id.item())
+                    elif edge_type[0] == "user" and edge_type[2] == "keyword":
+                        row, col = data[edge_type].edge_index
+                        for row_id, col_id in zip(row, col):
+                            nei_k[row_id].add(col_id.item())
+                    elif edge_type[2] == "user" and edge_type[0] == "keyword":
+                        row, col = data[edge_type].edge_index
+                        for row_id, col_id in zip(row, col):
+                            nei_k[col_id].add(row_id.item())
+                # pos = [torch.LongTensor(list(p)) for p in pos]
+                pos = torch.LongTensor(pos)
+                pos = to_torch_sparse_tensor(pos).coalesce()
+                nei_k = [torch.LongTensor(list(p)) for p in nei_k]
+                nei_t = [torch.LongTensor(list(p)) for p in nei_t]
+                assert len(pos) == data["user"].num_nodes
+                assert len(nei_k) == data["user"].num_nodes
+                assert len(nei_t) == data["user"].num_nodes
+                data["user"].pos = pos
+                data["user"].nei_index = {
+                    "keyword": nei_k,
+                    "tweet": nei_t,
+                }
+
             if "build_metapath_from_config" in module_config.config.preprocess:
                 metapaths = [
                     [(src, rel, dst) for src, rel, dst in metapath]
@@ -156,7 +200,22 @@ class DataLoaderForGraph(DataLoaderWrapper):
                     drop_orig_edge_types=True,
                     keep_same_node_type=True,
                 )(data)
+            if "build_metapath" in module_config.config.preprocess:
+                metapaths = [
+                    [(src, rel, dst) for src, rel, dst in metapath]
+                    for metapath in module_config.config.metapaths
+                ]
+                data = AddMetaPaths(
+                    metapaths,
+                    max_sample=5,
+                    drop_orig_edge_types=True,
+                    keep_same_node_type=True,
+                )(data)
+                for edge_type in data.edge_types:
+                    if not edge_type[1].startswith("metapath"):
+                        del data[edge_type]
 
+            data.target_node_type = "user"
             torch.save(data, save_or_load_path)
             logger.info(data.metadata())
             logger.info(f"Data saved to: {save_or_load_path}")

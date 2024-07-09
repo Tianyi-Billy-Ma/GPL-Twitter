@@ -11,15 +11,14 @@ from models.base import HAN
 
 
 class HGMAE(nn.Module):
-    def __init__(self, config, num_metapath, focused_feature_dim):
+    def __init__(self, model_config, num_metapath=3, focused_feature_dim=768):
         super().__init__()
 
         self.num_metapath = num_metapath
         self.focused_feature_dim = focused_feature_dim
 
-        self.target_node_type = config.train.additional.target_node_type
+        self.target_node_type = "user"
 
-        model_config = config.model_config
         EncoderModelConfig = model_config.EncoderModelConfig
         DecoderModelConfig = model_config.DecoderModelConfig
         MPModelConfig = model_config.MPModelConfig
@@ -141,7 +140,8 @@ class HGMAE(nn.Module):
 
         # mp based edge reconstruction
 
-        mer_loss = self.mask_mp_edge_reconstruction(origin_feat, mp_edge_index)
+        mer_loss = 0
+        # mer_loss = self.mask_mp_edge_reconstruction(origin_feat, mp_edge_index)
 
         mp2vec_feat_pred = self.enc_out_to_mp2vec_feat_mapping(enc_out)
 
@@ -150,7 +150,7 @@ class HGMAE(nn.Module):
         data_to_return = EasyDict(
             {
                 "tar_loss": tar_loss,
-                "mer_loss": mer_loss,
+                # "mer_loss": mer_loss,
                 "pfp_loss": pfp_loss,
             }
         )
@@ -237,13 +237,11 @@ class HGMAE(nn.Module):
             # loss = att_mp[i] * self.mp_edge_recon_loss(gs_recon_only_masked_places_list[i], mps_only_masked_places_list[i])  # loss only on masked places
         return loss
 
-    def get_embeds(self, feats, mps, *varg):
-        if self.use_mp2vec_feat_pred:
-            origin_feat = feats[0][:, : self.focused_feature_dim]
-        else:
-            origin_feat = feats[0]
-        gs = self.mps_to_gs(mps)
-        rep, _ = self.encoder(gs, origin_feat)
+    def get_embeds(self, batch):
+        metapath_dict = batch.metapath_dict
+        origin_feat = batch[self.target_node_type].x
+        mp_edge_index = [batch[mp_type].edge_index for mp_type in metapath_dict]
+        rep, _ = self.encoder(origin_feat, mp_edge_index)
         return rep.detach()
 
     @property

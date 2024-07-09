@@ -36,6 +36,7 @@ class MetricsProcessor:
 
         accuracy = metrics.accuracy_score(y_true, y_pred)
         f1_weighted = metrics.f1_score(y_true, y_pred, average="weighted")
+        f1_macro = metrics.f1_score(y_true, y_pred, average="macro")
         precision = metrics.precision_score(y_true, y_pred, average="weighted")
         recall = metrics.recall_score(y_true, y_pred, average="weighted")
 
@@ -43,5 +44,6 @@ class MetricsProcessor:
         log_dict.metrics["f1_weighted"] = f1_weighted
         log_dict.metrics["precision"] = precision
         log_dict.metrics["recall"] = recall
+        log_dict.metrics["f1_macro"] = f1_macro
 
         return log_dict

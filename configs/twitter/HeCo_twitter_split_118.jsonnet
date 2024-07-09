@@ -1,53 +1,50 @@
 local base_env = import '../base_env.jsonnet';
 
+
 local seed = 3;
-local train_epoch = 100;
+local train_epoch = 500;
 local train_batch_size = 128;
 local valid_batch_size = 128;
 local test_batch_size = 128;
 
-local dropout = 0.2;
+local dropout = 0.3;
 local save_interval = 1;
 
 local override = {
 
   platform_type: 'pytorch',
   ignore_pretrained_weights: [],
-  experiment_name: 'metapath2vec_twitter_split_118',
+  experiment_name: 'heco_twitter_split_118',
   seed: seed,
   model_config: {
-    base_model: 'MetaPath2Vec',
-    ModelClass: 'MP2Vec',
-    EncoderModelClass: 'MetaPath2Vec',
-    EncoderModelConfig: {
-      embedding_dim: 64,
-      walk_length: 10,
-      walks_per_node: 3,
-      context_size: 5,
-      num_negative_samples: 3,
-      sparse: true,
-      metapath: [
-        // uu
-        ['user', 'to', 'user'],
-        // uku
-        ['user', 'to', 'keyword'],
-        ['keyword', 'to', 'user'],
-        // utu
-        ['user', 'to', 'tweet'],
-        ['tweet', 'to', 'user'],
-        // uktku
-        ['user', 'to', 'tweet'],
-        ['tweet', 'to', 'keyword'],
-        ['keyword', 'to', 'tweet'],
-        ['tweet', 'to', 'user'],
-      ],
+    base_model: 'HeCo',
+    ModelClass: 'HeCo',
+    MappingModelClass: 'Linear',
+    MappingModelConfig: {
+      in_features: 768,
+      out_features: 256,
+      bias: true,
     },
-    DecoderModelClass: 'MLP',
-    DecoderModelConfig: {
-      num_layers: 2,
-      input_dim: 64,
+    ContrastModelClass: 'Contrast',
+    ContrastModelConfig: {
       hidden_dim: 256,
-      output_dim: 4,
+      tau: 0.5,
+      lam: 0.2,
+    },
+    MPModelClass: 'MPEncoder',
+    MPModelConfig: {
+      num_metapaths: 3,
+      hidden_dim: 256,
+      attention_dropout: 0.2,
+    },
+    SCModelClass: 'SCEncoder',
+    SCModelConfig: {
+      hidden_dim: 256,
+      sample_rate: [5, 5],
+      num_neighbors: 2,
+      attention_dropout: 0.4,
+    },
+    additional: {
       dropout: dropout,
     },
   },
@@ -64,15 +61,31 @@ local override = {
             type: 'LoadTwitterData',
             option: 'default',
             config: {
-              preprocess: ['build_metapath_for_MetaPath2Vec'],
+              preprocess: ['build_baseline', 'build_metapath'],
               name: 'twitter',
               path: 'TwitterData/',
-              save_or_load_name: 'twitter_MP2Vec',
+              save_or_load_name: 'twitter_baseline',
+              metapaths: [
+                [
+                  ['user', 'post-->', 'tweet'],
+                  ['tweet', '<--engage', 'user'],
+                ],
+                [
+                  ['user', 'post-->', 'tweet'],
+                  ['tweet', 'include-->', 'keyword'],
+                  ['keyword', '<--tag', 'tweet'],
+                  ['tweet', '<--post', 'user'],
+                ],
+                [
+                  ['user', 'profile-->', 'keyword'],
+                  ['keyword', '<--profile', 'user'],
+                ],
+              ],
             },
           },
           LoadSplits: {
             type: 'LoadSplits',
-            option: 'default',
+            option: 'reload',
             path: 'TwitterData/processed/',
             use_column: 'twitter',
             split_ratio: {
@@ -83,29 +96,29 @@ local override = {
           },
           LoadDataLoader: {
             type: 'LoadDataLoader',
-            option: 'skip',
+            option: 'default',
             use_column: 'twitter',
             config: {
               train: [
                 {
-                  dataset_type: 'MetaPath2Vec_twitter',
+                  dataset_type: 'HeCo_twitter',
                   split: 'train',
 
                 },
               ],
               valid: [
                 {
-                  dataset_type: 'MetaPath2Vec_twitter',
+                  dataset_type: 'HeCo_twitter',
                   split: 'valid',
                 },
               ],
               test: [
                 {
-                  dataset_type: 'MetaPath2Vec_twitter',
+                  dataset_type: 'HeCo_twitter',
                   split: 'valid',
                 },
                 {
-                  dataset_type: 'MetaPath2Vec_twitter',
+                  dataset_type: 'HeCo_twitter',
                   split: 'test',
                 },
               ],
@@ -115,7 +128,7 @@ local override = {
     },
   },
   train: {
-    type: 'MP2VecExecutor',
+    type: 'HeCoExecutor',
     epochs: train_epoch,
     batch_size: train_batch_size,
     lr: 0.005,
@@ -126,10 +139,10 @@ local override = {
     load_best_model: 0,
     save_interval: save_interval,
     additional: {
-      save_top_k_metric: 'valid/MetaPath2Vec_twitter.valid/f1_macro',
+      save_top_k_metric: 'valid/HeCo_twitter.valid/f1_macro',
       save_top_k_mode: 'max',
       target_node_type: 'user',
-      early_stop_patience: 5,
+      early_stop_patience: 100,
     },
   },
   valid: {

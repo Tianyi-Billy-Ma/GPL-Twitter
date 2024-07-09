@@ -39,24 +39,24 @@ local default_cache_folder = 'cache';
   experiment_name: 'default_test',
   seed: seed,
   model_config: {
-    base_model: '',
-    pretrained: 1,
+    // base_model: '',
+    // pretrained: 1,
     modules: [],
-    input_modules: {
-      module_list: [],
-      postprocess_module_list: [],
-    },
-    rag_modules: {
-      module_list: [],
-    },
-    decoder_input_modules: {
-      module_list: [],
-      postprocess_module_list: [],
-    },
-    output_modules: {
-      module_list: [],
-      postprocess_module_list: [],
-    },
+    // input_modules: {
+    //   module_list: [],
+    //   postprocess_module_list: [],
+    // },
+    // rag_modules: {
+    //   module_list: [],
+    // },
+    // decoder_input_modules: {
+    //   module_list: [],
+    //   postprocess_module_list: [],
+    // },
+    // output_modules: {
+    //   module_list: [],
+    //   postprocess_module_list: [],
+    // },
   },
   cache: {
     default_folder: default_cache_folder,

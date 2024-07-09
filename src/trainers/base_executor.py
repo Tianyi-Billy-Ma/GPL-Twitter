@@ -166,45 +166,44 @@ class BaseExecutor(pl.LightningModule, MetricsProcessor):
                 self.wandb_logger.experiment.finish()
 
     def on_validation_epoch_start(self):
-        self.validation_step_outputs = [[] for _ in range(len(self.val_dataloader()))]
+        self.validation_step_outputs = [None for _ in range(len(self.val_dataloader()))]
 
     def on_validation_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0):
-        self.validation_step_outputs[dataloader_idx].append(outputs)
+        self.validation_step_outputs[dataloader_idx] = outputs
 
     def on_validation_epoch_end(self, validation_step_outputs=None):
         validation_step_outputs = self.validation_step_outputs
         for i in range(len(self.val_dataloader())):
-            validation_step_output = validation_step_outputs[i]
-            if len(validation_step_output) > 0:
-                log_dict = self.evaluate_outputs(
-                    validation_step_output,
-                    self.val_dataloader()[i],
-                    self.val_dataloader_names[i],
-                )
+            if len(validation_step_outputs) == 1:
+                validation_step_output = validation_step_outputs[i]
+            log_dict = self.evaluate_outputs(
+                validation_step_output,
+                self.val_dataloader()[i],
+                self.val_dataloader_names[i],
+            )
             self.logging_results(log_dict, prefix=self.val_dataloader_names[i])
 
     def on_test_epoch_start(self):
-        self.test_step_outputs = [[] for _ in range(len(self.test_dataloader()))]
+        self.test_step_outputs = [None for _ in range(len(self.test_dataloader()))]
 
     def on_test_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0):
-        self.test_step_outputs[dataloader_idx].append(outputs)
-        print()
+        self.test_step_outputs[dataloader_idx] = outputs
 
     def on_test_epoch_end(self):
         test_step_outputs = self.test_step_outputs
         # self.save_HF_model()
         for i in range(len(self.test_dataloader())):
             test_step_output = test_step_outputs[i]
-            if len(test_step_output) > 0:
-                log_dict = self.evaluate_outputs(
-                    test_step_output,
-                    self.test_dataloader()[i],
-                    self.test_dataloader_names[i],
-                )
-                self.logging_results(
-                    log_dict,
-                    prefix=f"{self.config.test.evaluation_name}_{self.test_dataloader_names[i]}",
-                )
+
+            log_dict = self.evaluate_outputs(
+                test_step_output,
+                self.test_dataloader()[i],
+                self.test_dataloader_names[i],
+            )
+            self.logging_results(
+                log_dict,
+                prefix=f"{self.config.test.evaluation_name}_{self.test_dataloader_names[i]}",
+            )
         return None
 
     def evaluate_outputs(
