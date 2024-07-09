@@ -143,7 +143,7 @@ class DataLoaderForGraph(DataLoaderWrapper):
             data["user"].y = torch.tensor(labels)
 
             for (src_type, relation_type, dst_type), edges in edge_index_dict.items():
-                data[src_type, relation_type, dst_type].edge_index = edges
+                data[src_type, relation_type, dst_type].edge_index = edges.contiguous()
 
             if "build_baseline" in module_config.config.preprocess:
                 edge_types = data.edge_types
@@ -266,14 +266,14 @@ class DataLoaderForGraph(DataLoaderWrapper):
                 use_split = data_config.split
                 dataset_type = data_config.dataset_type
                 if option == "skip":
-                    data_loader = deepcopy(self.data[use_column])
+                    data_loader = self.data[use_column].clone()
                     loader_name = f"{mode}/{dataset_type}.{use_split}"
                     self.data_loaders[mode][loader_name] = data_loader
                     self.data_loaders[mode][loader_name][
                         target_node_type
                     ].mask = self.splits[use_column][use_split]
                 else:
-                    data_loader = deepcopy(self.data[use_column])
+                    data_loader = self.data[use_column].clone()
                     data_loader[target_node_type].mask = self.splits[use_column][
                         use_split
                     ]
