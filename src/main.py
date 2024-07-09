@@ -243,7 +243,7 @@ if __name__ == "__main__":
         "gpu",
         "--override",
         "--num_sanity_val_steps",
-        "0",
+        "2",
         "--devices",
         "1",
         "--num_runs",

@@ -31,6 +31,7 @@ class HeCoExecutor(BaseExecutor):
         self.classifier = globals()[ClassifierModelClass](**ClassifierModelConfig)
 
         self.automatic_optimization = False
+        self.loss_fn = F.nll_loss
 
     def configure_optimizers(self):
         model_optimizer = torch.optim.Adam(
@@ -71,15 +72,12 @@ class HeCoExecutor(BaseExecutor):
         return {"loss": loss}
 
     def validation_step(self, batch, batch_idx, dataloader_idx=0):
-        loss_dict = self.model(batch)
+        train_loss = self.model(batch)
         embs = self.model.get_embeds(batch)
         embs = self.classifier(embs)
         data_to_return = EasyDict()
-        total_loss = 0
-        for loss_name, loss_val in loss_dict.items():
-            data_to_return[loss_name] = loss_val.item()
-            total_loss += loss_val * self.loss_weights[f"{loss_name}_weight"]
-        data_to_return["total_loss"] = total_loss.item()
+        
+        data_to_return["train_loss"] = train_loss.item()
 
         mask = batch[self.target_node_type].mask
         y_true = batch[self.target_node_type].y

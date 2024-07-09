@@ -34,6 +34,7 @@ class HeCo(nn.Module):
         self.sc = globals()[SCModelClass](**SCModelConfig)
         self.contrast = globals()[ContrastModelClass](**ContrastModelConfig)
 
+        
     def forward(self, batch):
         h_all = {}
         mp_edge_index = [batch[mp_type].edge_index for mp_type in batch.metapath_dict]
