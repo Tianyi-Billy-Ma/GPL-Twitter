@@ -236,9 +236,9 @@ def run(arg_list):
 if __name__ == "__main__":
     arg_list = [
         # "configs/twitter/HGMAE_twitter_split_118.jsonnet",
-        "configs/twitter/MP2Vec_twitter_split_118.jsonnet",
+        # "configs/twitter/MP2Vec_twitter_split_118.jsonnet",
         # "configs/twitter/iHGT_twitter_split_118.jsonnet",
-        # "configs/twitter/HeCo_twitter_split_118.jsonnet",
+        "configs/twitter/HeCo_twitter_split_118.jsonnet",
         "--accelerator",
         "gpu",
         "--override",
@@ -251,7 +251,7 @@ if __name__ == "__main__":
         "--mode",
         "run",
         # "--log_prediction_tables",
-        # "--disable_wandb_logging",
+        "--disable_wandb_logging",
         "--opts",
         "reset=1",
     ]
