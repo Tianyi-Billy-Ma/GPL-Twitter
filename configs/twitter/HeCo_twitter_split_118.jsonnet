@@ -44,6 +44,11 @@ local override = {
       num_neighbors: 2,
       attention_dropout: 0.4,
     },
+    ClassifierModelClass: 'LogReg',
+    ClassifierModelConfig: {
+      input_dim: 256,
+      num_classes: 4,
+    },
     additional: {
       dropout: dropout,
     },

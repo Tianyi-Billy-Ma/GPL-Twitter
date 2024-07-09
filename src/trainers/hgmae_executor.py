@@ -36,7 +36,7 @@ class HGMAEExecutor(BaseExecutor):
 
     def configure_optimizers(self):
         model_optimizer = torch.optim.Adam(
-            list(self.model.encoder.parameters()),
+            list(self.model.parameters()),
             lr=self.config.train.lr,
         )
         classifier_optimizer = torch.optim.Adam(

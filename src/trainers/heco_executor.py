@@ -25,13 +25,16 @@ class HeCoExecutor(BaseExecutor):
 
         model_config = self.config.model_config
         self.model = ModelClass(model_config)
-        self.classifier = LogReg(**self.config.model_config.ClassifierModelConfig)
+
+        ClassifierModelClass = self.config.model_config.ClassifierModelClass
+        ClassifierModelConfig = self.config.model_config.ClassifierModelConfig
+        self.classifier = globals()[ClassifierModelClass](**ClassifierModelConfig)
 
         self.automatic_optimization = False
 
     def configure_optimizers(self):
         model_optimizer = torch.optim.Adam(
-            list(self.model.encoder.parameters()),
+            list(self.model.parameters()),
             lr=self.config.train.lr,
         )
         classifier_optimizer = torch.optim.Adam(
