@@ -50,9 +50,9 @@ def main(args):
     # pprint(config)
 
     if config.seed:
-        set_seed(config.seed)
+        # set_seed(config.seed)
         seed_everything(config.seed, workers=True)
-        logger.info(f"All seeds have been set to 1{config.seed}")
+        logger.info(f"All seeds have been set to {config.seed}")
 
     DataLoaderWrapper = globals()[config.data_loader.type]
 
