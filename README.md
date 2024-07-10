@@ -4,6 +4,8 @@ Num Users:    28,839
 Num Tweets:   118,697
 Num Keywords: 288
 
+imbalance ratio: 
+
 Relationships:
 
 - user-follow-user              100,571

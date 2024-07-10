@@ -147,7 +147,7 @@ local override = {
       save_top_k_metric: 'valid/HeCo_twitter.valid/f1_macro',
       save_top_k_mode: 'max',
       target_node_type: 'user',
-      early_stop_patience: 100,
+      early_stop_patience: 10,
     },
   },
   valid: {

@@ -17,6 +17,18 @@ from logging import Formatter
 logger = logging.getLogger(__name__)
 
 
+def reset_logging():
+    loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
+    loggers.append(logging.getLogger())
+    for logger in loggers:
+        handlers = logger.handlers[:]
+        for handler in handlers:
+            logger.removeHandler(handler)
+            handler.close()
+        logger.setLevel(logging.NOTSET)
+        logger.propagate = True
+
+
 def get_checkpoint_model_path(
     saved_model_path, load_epoch=-1, load_best_model=False, load_model_path=""
 ):
@@ -56,7 +68,7 @@ def initialization(args):
     # ======================= Process Config =======================
     config = process_config(args)
 
-    print("==" * 30 + "\n\n" + "CONFIGURATION:\n\n" + f"{config}\n\n")
+    # print("==" * 30 + "\n\n" + "CONFIGURATION:\n\n" + f"{config}\n\n")
     if config is None:
         return None
     dirs = [config.log_path]
@@ -83,13 +95,15 @@ def initialization(args):
             print("reset cancelled.")
 
     create_dirs(dirs)
-    print("==" * 30 + "\n\n" + "CREATED DIRS:\n\n" + f"{dirs}\n\n")
+    # print("==" * 30 + "\n\n" + "CREATED DIRS:\n\n" + f"{dirs}\n\n")
 
     # ======================= Setup Logger =======================
     log_file_format = "[%(levelname)s] - %(asctime)s - %(name)s : %(message)s (in %(pathname)s:%(lineno)d)"
     log_console_format = "[%(levelname)s] - %(name)s : %(message)s"
 
     # Main logger
+    reset_logging()
+
     main_logger = logging.getLogger()
     main_logger.setLevel(logging.DEBUG)
 

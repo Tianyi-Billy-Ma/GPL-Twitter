@@ -40,14 +40,14 @@ from argument import parse_args
 
 
 def main(args):
-    print("==" * 30 + "\n\n" + "ARGUMENTS:\n\n" + f"{args}\n\n")
+    # print("==" * 30 + "\n\n" + "ARGUMENTS:\n\n" + f"{args}\n\n")
     config = initialization(args)
     if config is None:
         raise ValueError("No config file is obtained, exiting...")
 
     args = config.args
 
-    pprint(config)
+    # pprint(config)
 
     if config.seed:
         set_seed(config.seed)
@@ -81,9 +81,9 @@ def main(args):
         if "save_top_k_metric" in config.train.additional.keys()
         else None,
         mode=config.train.additional.save_top_k_mode,
-        filename="model_epoch_{epoch}",
+        filename="best",
         save_last=True,
-        verbose=True,
+        verbose=False,
         auto_insert_metric_name=False,
         save_on_train_epoch_end=False,
     )
@@ -97,7 +97,7 @@ def main(args):
         early_stop_callback = EarlyStopping(
             monitor=config.train.additional.save_top_k_metric,
             patience=config.train.additional.early_stop_patience,
-            verbose=True,
+            verbose=False,
             mode=config.train.additional.save_top_k_mode,
             check_on_train_epoch_end=True,
         )
@@ -137,7 +137,7 @@ def main(args):
         "logger": all_loggers,
         "callbacks": callback_list,
         "plugins": plugins,
-        "log_every_n_steps": 1,
+        # "log_every_n_steps": 1,
         "check_val_every_n_epoch": config.valid.epoch_size,
         "deterministic": True
         # "val_check_interval": config.valid.step_size
@@ -183,7 +183,7 @@ def main(args):
             load_best_model=config.test.load_best_model,
         )
         if not checkpoint_to_load:
-            logger.warning("No checkpoint found. Please check your config file.")
+            logger.error("No checkpoint found. Please check your config file.")
 
     # init data loader manager
     data_loader_manager.build_dataset()
@@ -244,7 +244,7 @@ if __name__ == "__main__":
         "gpu",
         "--override",
         "--num_sanity_val_steps",
-        "2",
+        "0",
         "--devices",
         "1",
         "--num_runs",
@@ -252,7 +252,7 @@ if __name__ == "__main__":
         "--mode",
         "run",
         # "--log_prediction_tables",
-        "--disable_wandb_logging",
+        # "--disable_wandb_logging",
         "--opts",
         "reset=1",
     ]

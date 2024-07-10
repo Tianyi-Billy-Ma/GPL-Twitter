@@ -52,7 +52,15 @@ class ReWeightExecutor(BaseExecutor):
             **self.LossClassConfig,
         )
         data_to_return = {"loss": loss}
-        self.log("train/loss", loss.item(), prog_bar=True, logger=True, sync_dist=True)
+        self.log(
+            "train/loss",
+            loss.item(),
+            # on_step=False,
+            # on_epoch=True,
+            prog_bar=True,
+            logger=True,
+            sync_dist=True,
+        )
         return data_to_return
 
     def validation_step(self, batch, batch_idx, dataloader_idx=0):
@@ -85,6 +93,8 @@ class ReWeightExecutor(BaseExecutor):
         data_to_return["y_true"] = y_true[mask].detach().cpu().numpy()
         data_to_return["y_pred"] = y_pred[mask].detach().cpu().numpy()
 
+        return data_to_return
+
     def evaluate_outputs(self, step_outputs, current_data_loader, dataset_name):
         data_used_for_metrics = EasyDict(
             y_true=step_outputs.y_true,
@@ -116,6 +126,8 @@ class ReWeightExecutor(BaseExecutor):
                 self.log(
                     metric,
                     float(value),
+                    # on_step=False,
+                    # on_epoch=True,
                     logger=True,
                     sync_dist=True,
                 )

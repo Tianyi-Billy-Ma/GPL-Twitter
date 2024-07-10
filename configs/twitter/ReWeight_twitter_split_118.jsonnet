@@ -22,8 +22,8 @@ local override = {
     ModelClassConfig: {
       input_dim: 768,
       hidden_dim: 256,
-      output_dim: 256,
-      num_layers: 2,
+      output_dim: 4,
+      num_layers: 3,
       dropout: 0.5,
     },
     LossClass: 'focal',  // focal, sigmoid, softmax
@@ -120,13 +120,13 @@ local override = {
     scheduler: 'none',
     load_epoch: -1,
     load_model_path: '',
-    load_best_model: 0,
+    load_best_model: true,
     save_interval: save_interval,
     additional: {
       save_top_k_metric: 'valid/ReWeight_twitter.valid/f1_macro',
       save_top_k_mode: 'max',
       target_node_type: 'user',
-      early_stop_patience: 100,
+      early_stop_patience: 10,
     },
   },
   valid: {
