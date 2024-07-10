@@ -50,7 +50,7 @@ def main(args):
     # pprint(config)
 
     if config.seed:
-        # set_seed(config.seed)
+        set_seed(config.seed)
         seed_everything(config.seed, workers=True)
         logger.info(f"All seeds have been set to {config.seed}")
 
@@ -239,7 +239,9 @@ if __name__ == "__main__":
         # "configs/twitter/MP2Vec_twitter_split_118.jsonnet",
         # "configs/twitter/iHGT_twitter_split_118.jsonnet",
         # "configs/twitter/HeCo_twitter_split_118.jsonnet",
-        "configs/twitter/ReWeight_twitter_split_118.jsonnet",
+        # "configs/twitter/ReWeight_twitter_split_118.jsonnet",
+        # "configs/twitter/Smote_twitter_split_118.jsonnet",
+        "configs/twitter/OverSampling_twitter_split_118.jsonnet",
         "--accelerator",
         "gpu",
         "--override",
