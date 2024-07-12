@@ -86,6 +86,7 @@ class SMOTE(nn.Module):
         # get occurence of the dominant class
         n_occ = int(occ[dominant_class].item())
         for i in range(len(occ)):
+            # For each minority class
             if i != dominant_class:
                 # calculate the amount of synthetic data to generate
                 N = (n_occ - occ[i]) * 100 / occ[i]

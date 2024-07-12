@@ -242,7 +242,7 @@ class DataLoaderForGraph(DataLoaderWrapper):
         save_or_load_path = osp.join(
             self.config.DATA_FOLDER,
             module_config.path,
-            f"split_{module_config.use_column}_{self.config.num_runs}.pt",
+            f"split_{module_config.use_column}_{self.config.num_runs}_{module_config.split_ratio.train}_{module_config.split_ratio.valid}_{module_config.split_ratio.test}.pt",
         )
         if osp.exists(save_or_load_path) and option == "default":
             loaded_split_masks = torch.load(save_or_load_path)

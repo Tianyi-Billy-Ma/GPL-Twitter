@@ -25,11 +25,15 @@ class iHGTExecutor(BaseExecutor):
         }
         self.pretrain_model = globals()[PretrainModelClass](PretrainModelConfig)
         self.pretrain_model.load_state_dict(PretrainModelWeights)
-        print()
+
+        ModelClass = config.model_config.ModelClass
+        ModelClassConfig = config.model_config.ModelClassConfig
+        
+        self.model = globals()[ModelClass](ModelClassConfig)
 
     def configure_optimizers(self):
         model_optimizer = torch.optim.Adam(
-            list(self.model.encoder.parameters()),
+            list(self.model.parameters()),
             lr=self.config.train.lr,
         )
         return model_optimizer
