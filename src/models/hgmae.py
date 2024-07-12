@@ -83,7 +83,6 @@ class HGMAE(nn.Module):
         self.attr_restoration_loss = partial(
             sce_loss, alpha=model_config.additional.alpha_l
         )
-        self.__cache_gs = None
         self.enc_mask_token = nn.Parameter(torch.zeros(1, self.focused_feature_dim))
         self.encoder_to_decoder = nn.Linear(
             EncoderModelConfig.hidden_dim, DecoderModelConfig.input_dim, bias=False
