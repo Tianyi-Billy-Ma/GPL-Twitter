@@ -236,11 +236,18 @@ class HGMAE(nn.Module):
             # loss = att_mp[i] * self.mp_edge_recon_loss(gs_recon_only_masked_places_list[i], mps_only_masked_places_list[i])  # loss only on masked places
         return loss
 
-    def get_embeds(self, batch):
-        metapath_dict = batch.metapath_dict
-        origin_feat = batch[self.target_node_type].x
-        mp_edge_index = [batch[mp_type].edge_index for mp_type in metapath_dict]
-        rep, _ = self.encoder(origin_feat, mp_edge_index)
+    def get_embeds(self, batch=None, **kwargs):
+        if batch:
+            feat = batch[self.target_node_type].x
+            mp_edge_index = [
+                batch[mp_type].edge_index for mp_type in batch.metapath_dict
+            ]
+        elif "batch" in kwargs:
+            batch = kwargs["batch"]
+        else:
+            feat = kwargs["feat"]
+            mp_edge_index = kwargs["mp_edge_index"]
+        rep, _ = self.encoder(feat, mp_edge_index)
         return rep.detach()
 
     @property

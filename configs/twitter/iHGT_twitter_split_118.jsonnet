@@ -9,7 +9,7 @@ local train_batch_size = 128;
 local valid_batch_size = 128;
 local test_batch_size = 128;
 
-local dropout = 0.8;
+local dropout = 0.4;
 local save_interval = 1;
 
 local override = {
@@ -67,10 +67,23 @@ local override = {
         leave_unchanged: 0.2,
       },
     },
-    loss_weights: {
-      tar_loss_weight: 0.5,
-      pfp_loss_weight: 0.5,
-      mer_loss_weight: 0.5,
+    ModelClass: 'iHGT',
+    ModelClassConfig: {
+      node_types: ['user', 'tweet', 'keyword'],
+      num_metapath_types: 3,
+      batch_size: 512,
+      class_token_dim: 256,
+      num_classes: 4,
+      num_node_type_tokens: 5,
+      node_type_token_dim: 768,
+      dropout: dropout,
+      MLP_input_dim: 768,
+      MLP_hidden_dim: 256,
+      MLP_output_dim: 256,
+      MLP_num_layers: 2,
+      MLP_norm: 'bn',
+      heads: 4,
+      tau: 0.4
     },
 
   },
@@ -80,17 +93,17 @@ local override = {
     additional: {},
     dataset_modules: {
 
-      module_list: ['LoadTwitterData', 'LoadPositionEmb', 'LoadSplits', 'LoadDataLoader'],
+      module_list: ['LoadTwitterData', 'LoadSplits', 'LoadDataLoader'],
       module_dict:
         {
           LoadTwitterData: {
             type: 'LoadTwitterData',
             option: 'default',
             config: {
-              preprocess: ['build_metapath_from_config'],
+              preprocess: ['build_baseline', 'build_metapath'],
               name: 'twitter',
               path: 'TwitterData/',
-              save_or_load_name: 'twitter',
+              save_or_load_name: 'twitter_baseline',
               metapaths: [
                 [
                   ['user', 'post-->', 'tweet'],
@@ -107,16 +120,6 @@ local override = {
                   ['keyword', '<--profile', 'user'],
                 ],
               ],
-            },
-          },
-          LoadPositionEmb: {
-            type: 'LoadPositionEmb',
-            option: 'default',
-            use_column: 'twitter',
-            path: 'TwitterData/processed/',
-            config: {
-              node_type: 'user',
-              file_name: 'position_emb.pt',
             },
           },
           LoadSplits: {
@@ -172,13 +175,13 @@ local override = {
     scheduler: 'none',
     load_epoch: -1,
     load_model_path: '',
-    load_best_model: 0,
+    load_best_model: true,
     save_interval: save_interval,
     additional: {
       save_top_k_metric: 'valid/iHGT_twitter.valid/f1_macro',
       save_top_k_mode: 'max',
       target_node_type: 'user',
-      early_stop_patience: 100,
+      early_stop_patience: 10,
     },
   },
   valid: {

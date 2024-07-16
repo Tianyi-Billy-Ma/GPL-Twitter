@@ -39,6 +39,9 @@ from data_loader_manager import *
 from argument import parse_args
 
 
+os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
+
+
 def main(args):
     # print("==" * 30 + "\n\n" + "ARGUMENTS:\n\n" + f"{args}\n\n")
     config = initialization(args)
@@ -237,8 +240,8 @@ if __name__ == "__main__":
     arg_list = [
         # "configs/twitter/HGMAE_twitter_split_118.jsonnet",
         # "configs/twitter/MP2Vec_twitter_split_118.jsonnet",
-        # "configs/twitter/iHGT_twitter_split_118.jsonnet",
-        "configs/twitter/HeCo_twitter_split_118.jsonnet",
+        "configs/twitter/iHGT_twitter_split_118.jsonnet",
+        # "configs/twitter/HeCo_twitter_split_118.jsonnet",
         # "configs/twitter/ReWeight_twitter_split_118.jsonnet",
         # "configs/twitter/Smote_twitter_split_118.jsonnet",
         # "configs/twitter/OverSampling_twitter_split_118.jsonnet",
@@ -247,7 +250,7 @@ if __name__ == "__main__":
         "gpu",
         "--override",
         "--num_sanity_val_steps",
-        "0",
+        "1",
         "--devices",
         "1",
         "--num_runs",
@@ -260,17 +263,4 @@ if __name__ == "__main__":
         "reset=1",
     ]
 
-    # arg_list = [
-    #     "configs/create_all_data.jsonnet",
-    #     "--accelerator",
-    #     "gpu",
-    #     # "--override",
-    #     "--devices",
-    #     "1",
-    #     "--mode",
-    #     "create_data",
-    #     "--disable_wandb_logging",
-    #     "--opts",
-    #     # "reset=1",
-    # ]
     run(arg_list)

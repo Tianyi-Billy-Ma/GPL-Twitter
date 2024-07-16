@@ -196,7 +196,7 @@ class DataLoaderForGraph(DataLoaderWrapper):
                 data = AddMetaPaths(
                     metapaths,
                     max_sample=5,
-                    drop_orig_edge_types=True,
+                    drop_orig_edge_types=False,
                     keep_same_node_type=True,
                 )(data)
             if "build_metapath" in module_config.config.preprocess:

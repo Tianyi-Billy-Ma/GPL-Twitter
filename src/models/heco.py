@@ -34,7 +34,6 @@ class HeCo(nn.Module):
         self.sc = globals()[SCModelClass](**SCModelConfig)
         self.contrast = globals()[ContrastModelClass](**ContrastModelConfig)
 
-        
     def forward(self, batch):
         h_all = {}
         mp_edge_index = [batch[mp_type].edge_index for mp_type in batch.metapath_dict]
@@ -55,9 +54,21 @@ class HeCo(nn.Module):
         loss = self.contrast(z_mp, z_sc, pos)
         return loss
 
-    def get_embeds(self, batch):
-        feat = batch[self.target_node_type].x
-        mp_edge_index = [batch[mp_type].edge_index for mp_type in batch.metapath_dict]
+    def get_embeds(self, batch=None, **kwargs):
+        if batch:
+            feat = batch[self.target_node_type].x
+            mp_edge_index = [
+                batch[mp_type].edge_index for mp_type in batch.metapath_dict
+            ]
+        elif "batch" in kwargs:
+            batch = kwargs["batch"]
+            feat = batch[self.target_node_type].x
+            mp_edge_index = [
+                batch[mp_type].edge_index for mp_type in batch.metapath_dict
+            ]
+        else:
+            feat = kwargs["feat"]
+            mp_edge_index = kwargs["mp_edge_index"]
 
         z_mp = F.elu(self.mappings[0](feat))
         z_mp = self.mp(z_mp, mp_edge_index)
