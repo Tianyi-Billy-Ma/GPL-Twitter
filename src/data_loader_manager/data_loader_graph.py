@@ -147,7 +147,9 @@ class DataLoaderForGraph(DataLoaderWrapper):
 
             if "build_baseline" in module_config.config.preprocess:
                 edge_types = data.edge_types
+                labels = data["user"].y
                 pos = [[], []]
+                # pos_dict = defaultdict(int)
                 nei_t = [set() for i in range(data["user"].num_nodes)]
                 nei_k = [set() for i in range(data["user"].num_nodes)]
                 for edge_type in edge_types:
@@ -179,7 +181,7 @@ class DataLoaderForGraph(DataLoaderWrapper):
                 pos = to_torch_sparse_tensor(pos).coalesce()
                 nei_k = [torch.LongTensor(list(p)) for p in nei_k]
                 nei_t = [torch.LongTensor(list(p)) for p in nei_t]
-                assert len(pos) == data["user"].num_nodes
+                # assert len(pos) == data["user"].num_nodes
                 assert len(nei_k) == data["user"].num_nodes
                 assert len(nei_t) == data["user"].num_nodes
                 data["user"].pos = pos

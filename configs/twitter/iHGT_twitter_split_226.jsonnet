@@ -128,9 +128,9 @@ local override = {
             path: 'TwitterData/processed/',
             use_column: 'twitter',
             split_ratio: {
-              train: 0.1,
-              valid: 0.1,
-              test: 0.8,
+              train: 0.2,
+              valid: 0.2,
+              test: 0.6,
             },
           },
           LoadDataLoader: {

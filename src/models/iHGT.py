@@ -3,6 +3,7 @@ import torch.nn as nn
 from easydict import EasyDict
 
 import math
+import numpy as np
 
 from torch_geometric.nn import MessagePassing
 import torch.nn.functional as F
@@ -101,9 +102,11 @@ class iHGT(nn.Module):
             self.config.MLP_hidden_dim * 2, self.config.MLP_hidden_dim
         )
 
-        self.contrast_head = ContrastiveLoss(
+        self.contrast_head = WeightedContrastiveLoss(
             self.config.MLP_hidden_dim, self.config.MLP_hidden_dim, self.config.tau
         )
+
+        self.over_sampling = OverSampling()
 
     def reset_parameters(self, batch, pretrain_model):
         mask = batch[self.target_node_type].mask
@@ -249,15 +252,44 @@ class iHGT(nn.Module):
         x_out = x_out[mask]
 
         # self.smote
+        x_train, y_train = self.over_sampling(x_out, y_train)
 
-        loss, logits = self.contrast_head(x_out, self.class_tokens, y_train)
+        loss, logits = self.contrast_head(x_train, self.class_tokens, y_train)
+
+        logits = logits[: x_out.shape[0]]
 
         data_to_return = EasyDict(x=x_out, loss=loss, logits=logits)
 
         return data_to_return
 
 
-class ContrastiveLoss(nn.Module):
+class OverSampling(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, X, y):
+        occ = torch.eye(int(y.max() + 1), int(y.max() + 1)).to(y.device)[y].sum(axis=0)
+        dominant_class = torch.argmax(occ)
+        n_occ = int(occ[dominant_class].item())
+        xs, ys = [], []
+        for i in range(len(occ)):
+            if i != dominant_class:
+                # calculate the amount of synthetic data to generate
+                N = (n_occ - occ[i]) * 100 / occ[i]
+                candidates = X[y == i]
+                selection = torch.randint(
+                    0, candidates.shape[0], (int(N),), device=X.device
+                )
+                xs.append(candidates[selection])
+                ys.append(torch.ones(int(N)) * i)
+        xs = torch.cat(xs).to(X.device)
+        ys = torch.cat(ys).to(y.device)
+        X_return = torch.cat((X, xs))
+        y_return = torch.cat((y, ys))
+        return X_return, y_return.long()
+
+
+class WeightedContrastiveLoss(nn.Module):
     def __init__(self, input_dim, hidden_dim, temperature):
         super().__init__()
         self.tau = temperature
@@ -275,13 +307,19 @@ class ContrastiveLoss(nn.Module):
         return sim_matrix
 
     def forward(self, z1, z2, y):
+        # num_of_classes = y.unique().shape[0]
+        # num_samples = y.shape[0]
+        # samples_per_cls = torch.bincount(y)
+        # weight_per_cls = num_samples / samples_per_cls
+        # weights = weight_per_cls[y]
+
         z1 = self.lin(z1)
         z2 = self.lin(z2)
         z_sim = self.sim(z1, z2)
 
         return -torch.log(
             (z_sim[torch.arange(y.shape[0]), y] / torch.sum(z_sim, dim=-1))
-        ).sum(), z_sim
+        ).sum(0), z_sim
 
 
 class PMA(MessagePassing):

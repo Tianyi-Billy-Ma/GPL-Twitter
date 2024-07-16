@@ -13,7 +13,7 @@ from trainers.base_executor import BaseExecutor
 
 from models.hgmae import HGMAE
 from models.heco import HeCo
-from models.iHGT import iHGT, ContrastiveLoss
+from models.iHGT import iHGT
 
 
 class iHGTExecutor(BaseExecutor):
@@ -73,7 +73,8 @@ class iHGTExecutor(BaseExecutor):
     def training_step(self, batch, batch_idx):
         # pretrained_emb = self.pretrain_model.get_embeds(batch)
         loss_dict = self.model(batch, self.pretrain_model)
-        data_to_return = {"loss": loss_dict.loss}
+        data_to_return = EasyDict(loss=loss_dict.loss)
+        self.log_dict(data_to_return, prog_bar=True, logger=True)
         return data_to_return
 
     def validation_step(self, batch, batch_idx, dataloader_idx=0):
