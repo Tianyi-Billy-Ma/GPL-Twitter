@@ -53,7 +53,7 @@ def main(args):
     # pprint(config)
 
     if config.seed:
-        set_seed(config.seed)
+        # set_seed(config.seed)
         seed_everything(config.seed, workers=True)
         logger.info(f"All seeds have been set to {config.seed}")
 
@@ -142,7 +142,7 @@ def main(args):
         "plugins": plugins,
         # "log_every_n_steps": 1,
         "check_val_every_n_epoch": config.valid.epoch_size,
-        "deterministic": True
+        "deterministic": False
         # "val_check_interval": config.valid.step_size
         * config.train.additional.gradient_accumulation_steps,  # this is to use global_step as the interval number: global_step * grad_accumulation = batch_idx (val_check_interval is based on batch_idx)
     }
