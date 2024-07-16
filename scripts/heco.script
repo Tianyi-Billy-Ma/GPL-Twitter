@@ -3,7 +3,7 @@
 #$ -M tma2@nd.edu                   # Email address for job notification
 #$ -m abe                           # Send mail when job begins, ends, and aborts
 #$ -q gpu@@yye7_lab                 # Run on the GPU cluster
-#$ -o ~/Github/GPL-Twitter/Logs/system/Heco.log  # Standard output log file
+#$ -o ~/Github/GPL-Twitter/Logs/system/HeCo.log  # Standard output log file
 #$ -l gpu_card=1                    # Request 4 GPU cards
 #$ -N main              # Specify job name
 
