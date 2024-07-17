@@ -15,3 +15,8 @@ Relationships:
 - user-engage-tweet             44,197          {'liked', 'mention', 'quote', 'reply', 'retweet'}
 - tweet-tag-keyword             39,129
 - tweet-include-keyword         260,868
+
+
+
+
+iHGT + PMA  118 gmean 56.92 ± 7.64 f1 31.23 ± 2.64

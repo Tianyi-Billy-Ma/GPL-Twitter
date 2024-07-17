@@ -9,4 +9,4 @@
 
 conda activate llm
 cd ~/Github/GPL-Twitter/
-python src/run.py configs/twitter/iHGT_twitter_split_118.jsonnet --override --opts reset=1
+python src/run_main.py configs/twitter/iHGT_twitter_split_118.jsonnet --override --opts reset=1
