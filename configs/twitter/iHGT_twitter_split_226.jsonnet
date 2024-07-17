@@ -98,7 +98,7 @@ local override = {
         {
           LoadTwitterData: {
             type: 'LoadTwitterData',
-            option: 'reload',
+            option: 'default',
             config: {
               preprocess: ['build_baseline', 'build_metapath'],
               name: 'twitter',

@@ -33,6 +33,7 @@ class iHGTExecutor(BaseExecutor):
             for k, v in PretrainModelCkpt["state_dict"].items()
             if k.startswith(f"{PretrainModelName}.")
         }
+
         self.pretrain_model = globals()[PretrainModelClass](PretrainModelConfig)
         self.pretrain_model.load_state_dict(PretrainModelWeights)
 

@@ -120,6 +120,14 @@ class Contrast(nn.Module):
         ret = ret.mean()
 
         return ret
+    
+    def finetune(self, z1, z2, labels):
+        z1_project = self.proj(z1)
+        z2_project = self.proj(z2)
+        
+        sim_matrix = self.sim(z1_project, z2_project)
+        
+        
 
         # matrix_mp2sc = self.sim(z_proj_mp, z_proj_sc)
         # matrix_sc2mp = matrix_mp2sc.t()

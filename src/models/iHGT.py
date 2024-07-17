@@ -323,12 +323,14 @@ class ContrastiveLoss(nn.Module):
 
         z1 = self.lin(z1)
         z2 = self.lin(z2)
-        z_sim = self.sim(z1, z2)
+        z_sim1 = self.sim(z1, z2)
+        z_sim2 = self.sim(z2, z1)
 
-        positive_sim = z_sim[torch.arange(y.shape[0]), y]
-        full_sim = torch.sum(torch.exp(z_sim), dim=-1)
+        positive_sim1 = torch.exp(z_sim1[torch.arange(y.shape[0]), y])
+        full_sim1 = torch.sum(torch.exp(z_sim1), dim=-1)
+        l1 = -torch.log(positive_sim1 / full_sim1).sum()
 
-        return -torch.log(torch.exp(positive_sim) / full_sim).sum(), z_sim
+        return l1, z_sim1
 
 
 class PMA(MessagePassing):
@@ -346,10 +348,10 @@ class PMA(MessagePassing):
     ):
         super(PMA, self).__init__(node_dim=0)
 
-        # self.f_enc = nn.Linear(in_dim * 2, hid_dim)
-        # self.f_enc_k = nn.Linear(in_dim * 2, hid_dim)
-        self.f_enc = nn.Identity()
-        self.f_enc_k = nn.Identity()
+        self.f_enc = nn.Linear(in_dim * 2, hid_dim)
+        self.f_enc_k = nn.Linear(in_dim * 2, hid_dim)
+        # self.f_enc = nn.Identity()
+        # self.f_enc_k = nn.Identity()
         self.f_dec = MLP(
             in_dim, hid_dim, out_dim, num_layers, dropout, Normalization, InputNorm
         )
