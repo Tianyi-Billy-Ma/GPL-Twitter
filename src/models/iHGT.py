@@ -102,7 +102,7 @@ class iHGT(nn.Module):
             self.config.MLP_hidden_dim * 2, self.config.MLP_hidden_dim
         )
 
-        self.contrast_head = WeightedContrastiveLoss(
+        self.contrast_head = ContrastiveLoss(
             self.config.MLP_hidden_dim, self.config.MLP_hidden_dim, self.config.tau
         )
 
@@ -213,12 +213,13 @@ class iHGT(nn.Module):
                         batch_idx : batch_idx + self.config.batch_size
                     ].shape[0],
                 )
-                if batch_x_na.shape[0] != 512 and node_type == "keyword":
-                    print("")
                 curr_x_na.append(batch_x_na)
 
             curr_x_na = torch.cat(curr_x_na, dim=0)
             curr_x_na = F.relu(curr_x_na)
+            curr_x_na = F.dropout(
+                curr_x_na, p=self.config.dropout, training=self.training
+            )
             x_na[node_type] = curr_x_na
 
         x_na = torch.stack(
@@ -239,6 +240,9 @@ class iHGT(nn.Module):
                 num_nodes=pretrained_node_embs[self.target_node_type].shape[0],
             )
             curr_x_mp = F.relu(curr_x_mp)
+            curr_x_mp = F.dropout(
+                curr_x_mp, p=self.config.dropout, training=self.training
+            )
             x_mp[metapath_idx] = curr_x_mp
 
         x_mp = torch.stack(x_mp, dim=1)
@@ -289,7 +293,7 @@ class OverSampling(nn.Module):
         return X_return, y_return.long()
 
 
-class WeightedContrastiveLoss(nn.Module):
+class ContrastiveLoss(nn.Module):
     def __init__(self, input_dim, hidden_dim, temperature):
         super().__init__()
         self.tau = temperature
@@ -299,11 +303,15 @@ class WeightedContrastiveLoss(nn.Module):
         self.lin.reset_parameters()
 
     def sim(self, z1, z2):
-        z1_norm = torch.norm(z1, dim=-1, keepdim=True)
-        z2_norm = torch.norm(z2, dim=-1, keepdim=True)
-        sim_matrix = torch.exp(
-            torch.mm(z1, z2.T) / torch.mm(z1_norm, z2_norm.T) / self.tau
-        )
+        # z1_norm = torch.norm(z1, dim=-1, keepdim=True)
+        # z2_norm = torch.norm(z2, dim=-1, keepdim=True)
+        # sim_matrix = torch.log(
+        #     torch.mm(z1_norm, mat2=z2_norm.T) / torch.mm(z1_norm, z2_norm.T) / self.tau
+        # )
+        # return sim_matrix
+        z1 = F.normalize(z1)
+        z2 = F.normalize(z2)
+        sim_matrix = torch.mm(z1, z2.T) / self.tau
         return sim_matrix
 
     def forward(self, z1, z2, y):
@@ -317,9 +325,10 @@ class WeightedContrastiveLoss(nn.Module):
         z2 = self.lin(z2)
         z_sim = self.sim(z1, z2)
 
-        return -torch.log(
-            (z_sim[torch.arange(y.shape[0]), y] / torch.sum(z_sim, dim=-1))
-        ).sum(0), z_sim
+        positive_sim = z_sim[torch.arange(y.shape[0]), y]
+        full_sim = torch.sum(torch.exp(z_sim), dim=-1)
+
+        return -torch.log(torch.exp(positive_sim) / full_sim).sum(), z_sim
 
 
 class PMA(MessagePassing):

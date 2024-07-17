@@ -74,7 +74,13 @@ class iHGTExecutor(BaseExecutor):
         # pretrained_emb = self.pretrain_model.get_embeds(batch)
         loss_dict = self.model(batch, self.pretrain_model)
         data_to_return = EasyDict(loss=loss_dict.loss)
-        self.log_dict(data_to_return, prog_bar=True, logger=True)
+        self.log(
+            "train/loss",
+            loss_dict.loss.item(),
+            prog_bar=True,
+            logger=True,
+            sync_dist=True,
+        )
         return data_to_return
 
     def validation_step(self, batch, batch_idx, dataloader_idx=0):

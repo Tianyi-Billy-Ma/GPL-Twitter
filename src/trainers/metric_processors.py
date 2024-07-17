@@ -42,10 +42,10 @@ class MetricsProcessor:
 
         gmean = im_metrics.geometric_mean_score(y_true, y_pred, average="weighted")
 
-        log_dict.metrics["accuracy"] = accuracy
-        log_dict.metrics["f1_weighted"] = f1_weighted
-        log_dict.metrics["precision"] = precision
-        log_dict.metrics["recall"] = recall
+        # log_dict.metrics["accuracy"] = accuracy
+        # log_dict.metrics["f1_weighted"] = f1_weighted
+        # log_dict.metrics["precision"] = precision
+        # log_dict.metrics["recall"] = recall
         log_dict.metrics["f1_macro"] = f1_macro
         log_dict.metrics["gmean"] = gmean
 

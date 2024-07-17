@@ -100,7 +100,7 @@ def main(args):
         early_stop_callback = EarlyStopping(
             monitor=config.train.additional.save_top_k_metric,
             patience=config.train.additional.early_stop_patience,
-            verbose=False,
+            verbose=True,
             mode=config.train.additional.save_top_k_mode,
             check_on_train_epoch_end=True,
         )
@@ -140,7 +140,7 @@ def main(args):
         "logger": all_loggers,
         "callbacks": callback_list,
         "plugins": plugins,
-        # "log_every_n_steps": 1,
+        "log_every_n_steps": 1,
         "check_val_every_n_epoch": config.valid.epoch_size,
         "deterministic": False
         # "val_check_interval": config.valid.step_size
@@ -240,18 +240,18 @@ if __name__ == "__main__":
     arg_list = [
         # "configs/twitter/HGMAE_twitter_split_118.jsonnet",
         # "configs/twitter/MP2Vec_twitter_split_118.jsonnet",
-        # "configs/twitter/iHGT_twitter_split_118.jsonnet",
+        "configs/twitter/iHGT_twitter_split_118.jsonnet",
         # "configs/twitter/iHGT_twitter_split_226.jsonnet",
-        "configs/twitter/HeCo_twitter_split_118.jsonnet",
+        # "configs/twitter/HeCo_twitter_split_118.jsonnet",
         # "configs/twitter/ReWeight_twitter_split_118.jsonnet",
         # "configs/twitter/Smote_twitter_split_118.jsonnet",
         # "configs/twitter/OverSampling_twitter_split_118.jsonnet",
         # "configs/twitter/OverSampling_twitter_split_226.jsonnet",
         "--accelerator",
         "gpu",
-        # "--override",
+        "--override",
         "--num_sanity_val_steps",
-        "1",
+        "0",
         "--devices",
         "1",
         "--num_runs",
@@ -261,7 +261,7 @@ if __name__ == "__main__":
         # "--log_prediction_tables",
         # "--disable_wandb_logging",
         "--opts",
-        # "reset=1",
+        "reset=1",
     ]
 
     run(arg_list)
