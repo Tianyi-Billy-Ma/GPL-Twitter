@@ -223,7 +223,7 @@ def main(args):
         wandb.finish()
 
 
-def run(arg_list):
+def run(arg_list=None):
     args = parse_args(arg_list)
     experiment_mode = args.mode
     for current_run in range(args.num_runs):
@@ -237,31 +237,22 @@ def run(arg_list):
 
 
 if __name__ == "__main__":
-    arg_list = [
-        # "configs/twitter/HGMAE_twitter_split_118.jsonnet",
-        # "configs/twitter/MP2Vec_twitter_split_118.jsonnet",
-        # "configs/twitter/iHGT_twitter_split_118.jsonnet",
-        "configs/twitter/iHGT_twitter_split_226.jsonnet",
-        # "configs/twitter/HeCo_twitter_split_118.jsonnet",
-        # "configs/twitter/ReWeight_twitter_split_118.jsonnet",
-        # "configs/twitter/Smote_twitter_split_118.jsonnet",
-        # "configs/twitter/OverSampling_twitter_split_118.jsonnet",
-        # "configs/twitter/OverSampling_twitter_split_226.jsonnet",
-        "--accelerator",
-        "gpu",
-        "--override",
-        "--num_sanity_val_steps",
-        "0",
-        "--devices",
-        "1",
-        "--num_runs",
-        "5",
-        "--mode",
-        "run",
-        # "--log_prediction_tables",
-        # "--disable_wandb_logging",
-        "--opts",
-        "reset=1",
-    ]
+    # arg_list = [
+    #     # "configs/twitter/HGMAE_twitter_split_118.jsonnet",
+    #     # "configs/twitter/MP2Vec_twitter_split_118.jsonnet",
+    #     # "configs/twitter/iHGT_twitter_split_118.jsonnet",
+    #     "configs/twitter/iHGT_twitter_split_226.jsonnet",
+    #     # "configs/twitter/HeCo_twitter_split_118.jsonnet",
+    #     # "configs/twitter/ReWeight_twitter_split_118.jsonnet",
+    #     # "configs/twitter/Smote_twitter_split_118.jsonnet",
+    #     # "configs/twitter/OverSampling_twitter_split_118.jsonnet",
+    #     # "configs/twitter/OverSampling_twitter_split_226.jsonnet",
+    #     "--override",
+    #     # "--log_prediction_tables",
+    #     # "--disable_wandb_logging",
+    #     "--opts",
+    #     "reset=1",
+    # ]
 
-    run(arg_list)
+    # run(arg_list)
+    run()

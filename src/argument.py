@@ -27,7 +27,7 @@ def parse_args(args_list=None):
     )
 
     arg_parser.add_argument(
-        "--mode", type=str, default="", help="create_data/train/test"
+        "--mode", type=str, default="run", help="create_data/train/test"
     )
     arg_parser.add_argument(
         "--reset",
