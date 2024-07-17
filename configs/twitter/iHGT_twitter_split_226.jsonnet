@@ -16,7 +16,7 @@ local override = {
 
   platform_type: 'pytorch',
   ignore_pretrained_weights: [],
-  experiment_name: 'ihgt_twitter_split_118',
+  experiment_name: 'ihgt_twitter_split_226',
   seed: seed,
   model_config: {
     base_model: 'iHGT',
@@ -83,7 +83,7 @@ local override = {
       MLP_num_layers: 2,
       MLP_norm: 'bn',
       heads: 4,
-      tau: 0.4,
+      tau: 2,
     },
 
   },
@@ -178,10 +178,11 @@ local override = {
     load_best_model: true,
     save_interval: save_interval,
     additional: {
+      // save_top_k_metric: 'valid/iHGT_twitter.valid/f1_macro',
       save_top_k_metric: 'valid/iHGT_twitter.valid/f1_macro',
       save_top_k_mode: 'max',
       target_node_type: 'user',
-      early_stop_patience: 10,
+      early_stop_patience: 50,
     },
   },
   valid: {
