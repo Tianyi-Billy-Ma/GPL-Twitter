@@ -4,7 +4,7 @@ Num Users:    28,839
 Num Tweets:   118,697
 Num Keywords: 288
 
-imbalance ratio: 
+imbalance ratio: 25402 627 2142 668 
 
 Relationships:
 

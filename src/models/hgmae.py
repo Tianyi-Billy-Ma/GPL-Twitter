@@ -140,7 +140,7 @@ class HGMAE(nn.Module):
         # mp based edge reconstruction
 
         mer_loss = 0
-        # mer_loss = self.mask_mp_edge_reconstruction(origin_feat, mp_edge_index)
+        mer_loss = self.mask_mp_edge_reconstruction(origin_feat, mp_edge_index)
 
         mp2vec_feat_pred = self.enc_out_to_mp2vec_feat_mapping(enc_out)
 
@@ -149,7 +149,7 @@ class HGMAE(nn.Module):
         data_to_return = EasyDict(
             {
                 "tar_loss": tar_loss,
-                # "mer_loss": mer_loss,
+                "mer_loss": mer_loss,
                 "pfp_loss": pfp_loss,
             }
         )

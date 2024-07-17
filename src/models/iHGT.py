@@ -346,8 +346,10 @@ class PMA(MessagePassing):
     ):
         super(PMA, self).__init__(node_dim=0)
 
-        self.f_enc = nn.Linear(in_dim * 2, hid_dim)
-        self.f_enc_k = nn.Linear(in_dim * 2, hid_dim)
+        # self.f_enc = nn.Linear(in_dim * 2, hid_dim)
+        # self.f_enc_k = nn.Linear(in_dim * 2, hid_dim)
+        self.f_enc = nn.Identity()
+        self.f_enc_k = nn.Identity()
         self.f_dec = MLP(
             in_dim, hid_dim, out_dim, num_layers, dropout, Normalization, InputNorm
         )
@@ -355,7 +357,6 @@ class PMA(MessagePassing):
         self.ln0 = nn.LayerNorm(hid_dim)
         self.ln1 = nn.LayerNorm(hid_dim)
         self.att_r = nn.Parameter(torch.Tensor(1, heads, hid_dim // heads))
-        self.register_parameter("bias", None)
 
         self.hid_dim = hid_dim
         self.heads = heads
@@ -369,8 +370,10 @@ class PMA(MessagePassing):
             tensor.data.uniform_(-stdv, stdv)
 
     def reset_parameters(self):
-        self.glorot(self.f_enc.weight)
-        self.glorot(self.f_enc_k.weight)
+        if isinstance(self.f_enc, nn.Linear):
+            self.glorot(self.f_enc.weight)
+        if isinstance(self.f_enc_k, nn.Linear):
+            self.glorot(self.f_enc_k.weight)
 
         self.f_dec.reset_parameters()
         nn.init.xavier_uniform_(self.att_r)

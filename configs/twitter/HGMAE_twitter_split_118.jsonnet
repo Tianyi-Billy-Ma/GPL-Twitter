@@ -63,9 +63,9 @@ local override = {
       leave_unchanged: 0.2,
     },
     loss_weights: {
-      tar_loss_weight: 0.5,
-      pfp_loss_weight: 0.5,
-      mer_loss_weight: 0.5,
+      tar_loss_weight: 0.3,
+      pfp_loss_weight: 0.3,
+      mer_loss_weight: 0.4,
     },
 
   },
