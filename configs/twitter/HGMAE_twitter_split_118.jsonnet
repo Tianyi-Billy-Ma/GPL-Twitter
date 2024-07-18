@@ -1,6 +1,6 @@
 local base_env = import '../base_env.jsonnet';
 
-
+local num_classes = 2;
 local drop_edge_rate = 0.5;
 
 local seed = 3;
@@ -54,7 +54,7 @@ local override = {
     ClassifierModelClass: 'LogReg',
     ClassifierModelConfig: {
       input_dim: 256,
-      num_classes: 4,
+      num_classes: num_classes,
     },
     additional: {
       loss_fn: 'sce',
@@ -173,8 +173,8 @@ local override = {
     load_best_model: 0,
     save_interval: save_interval,
     additional: {
-      // save_top_k_metric: 'valid/HGMAE_twitter.valid/f1_macro',
-      save_top_k_metric: 'train/total_loss',
+      save_top_k_metric: 'valid/HGMAE_twitter.valid/f1_macro',
+      // save_top_k_metric: 'train/total_loss',
       save_top_k_mode: 'max',
       target_node_type: 'user',
       early_stop_patience: 50,
