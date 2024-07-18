@@ -240,20 +240,20 @@ if __name__ == "__main__":
     arg_list = [
         # "configs/twitter/HGMAE_twitter_split_118.jsonnet",
         # "configs/twitter/MP2Vec_twitter_split_118.jsonnet",
-        # "configs/twitter/iHGT_twitter_split_118.jsonnet",
+        "configs/twitter/iHGT_twitter_split_118.jsonnet",
         # "configs/twitter/iHGT_twitter_split_226.jsonnet",
         # "configs/twitter/HeCo_twitter_split_118.jsonnet",
         # "configs/twitter/ReWeight_twitter_split_118.jsonnet",
-        "configs/twitter/Smote_twitter_split_118.jsonnet",
+        # "configs/twitter/Smote_twitter_split_118.jsonnet",
         # "configs/twitter/OverSampling_twitter_split_118.jsonnet",
         # "configs/twitter/OverSampling_twitter_split_226.jsonnet",
         "--mode",
-        "create_data",
-        # "--override",
+        "run",
+        "--override",
         # "--log_prediction_tables",
-        "--disable_wandb_logging",
-        # "--opts",
-        # "reset=1",
+        # "--disable_wandb_logging",
+        "--opts",
+        "reset=1",
     ]
 
     run(arg_list)

@@ -239,6 +239,15 @@ class DataLoaderForGraph(DataLoaderWrapper):
         self.data[use_column][node_type].p_x = position_emb
         print()
 
+    def LoadBinaryData(self, module_config):
+        use_column = module_config.use_column
+        target_node_type = self.config.train.additional.target_node_type
+        data = self.data[use_column]
+        labels = data[target_node_type].y
+        labels = labels > 0
+        data[target_node_type].y = labels.int()
+        self.data[use_column] = data
+
     def LoadSplits(self, module_config):
         option = module_config.option
         use_column = module_config.use_column

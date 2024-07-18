@@ -1,6 +1,6 @@
 local base_env = import '../base_env.jsonnet';
 
-
+local num_classes = 2;
 local seed = 3;
 local train_epoch = 500;
 local train_batch_size = 128;
@@ -47,7 +47,7 @@ local override = {
     ClassifierModelClass: 'LogReg',
     ClassifierModelConfig: {
       input_dim: 256,
-      num_classes: 4,
+      num_classes: num_classes,
     },
     additional: {
       dropout: dropout,
@@ -59,7 +59,7 @@ local override = {
     additional: {},
     dataset_modules: {
 
-      module_list: ['LoadTwitterData', 'LoadSplits', 'LoadDataLoader'],
+      module_list: ['LoadTwitterData', 'LoadBinaryData', 'LoadSplits', 'LoadDataLoader'],
       module_dict:
         {
           LoadTwitterData: {
@@ -87,6 +87,9 @@ local override = {
                 ],
               ],
             },
+          },
+          LoadBinaryData: {
+            use_column: 'twitter',
           },
           LoadSplits: {
             type: 'LoadSplits',

@@ -112,7 +112,7 @@ local override = {
       num_metapath_types: 3,
       batch_size: 512,
       class_token_dim: 256,
-      num_classes: 4,
+      num_classes: 2,
       num_node_type_tokens: 5,
       node_type_token_dim: 768,
       dropout: dropout,
@@ -132,7 +132,7 @@ local override = {
     additional: {},
     dataset_modules: {
 
-      module_list: ['LoadTwitterData', 'LoadSplits', 'LoadDataLoader'],
+      module_list: ['LoadTwitterData', 'LoadBinaryData', 'LoadSplits', 'LoadDataLoader'],
       module_dict:
         {
           LoadTwitterData: {
@@ -161,9 +161,12 @@ local override = {
               ],
             },
           },
+          LoadBinaryData: {
+            use_column: 'twitter',
+          },
           LoadSplits: {
             type: 'LoadSplits',
-            option: 'default',
+            option: 'reload',
             path: 'TwitterData/processed/',
             use_column: 'twitter',
             split_ratio: {
