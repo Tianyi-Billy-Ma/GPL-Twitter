@@ -242,7 +242,7 @@ if __name__ == "__main__":
         # "configs/twitter/MP2Vec_twitter_split_118.jsonnet",
         # "configs/twitter/iHGT_twitter_split_118.jsonnet",
         # "configs/twitter/iHGT_twitter_split_226.jsonnet",
-        "configs/twitter/HeCo_twitter_split_118.jsonnet",
+        # "configs/twitter/HeCo_twitter_split_118.jsonnet",
         # "configs/twitter/ReWeight_twitter_split_118.jsonnet",
         # "configs/twitter/Smote_twitter_split_118.jsonnet",
         # "configs/twitter/OverSampling_twitter_split_118.jsonnet",

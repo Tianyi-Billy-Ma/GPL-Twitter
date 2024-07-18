@@ -75,7 +75,7 @@ local override = {
     additional: {},
     dataset_modules: {
 
-      module_list: ['LoadTwitterData', 'LoadPositionEmb', 'LoadSplits', 'LoadDataLoader'],
+      module_list: ['LoadTwitterData', 'LoadBinaryData', 'LoadPositionEmb', 'LoadSplits', 'LoadDataLoader'],
       module_dict:
         {
           LoadTwitterData: {
@@ -103,6 +103,9 @@ local override = {
                 ],
               ],
             },
+          },
+          LoadBinaryData: {
+            use_column: 'twitter',
           },
           LoadPositionEmb: {
             type: 'LoadPositionEmb',
