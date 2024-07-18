@@ -245,7 +245,7 @@ class DataLoaderForGraph(DataLoaderWrapper):
         data = self.data[use_column]
         labels = data[target_node_type].y
         labels = labels > 0
-        data[target_node_type].y = labels.int()
+        data[target_node_type].y = labels.long()
         self.data[use_column] = data
 
     def LoadSplits(self, module_config):

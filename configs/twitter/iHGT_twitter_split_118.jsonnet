@@ -68,7 +68,7 @@ local override = {
     //   },
     // },
     PretrainModelClass: 'HeCo',
-    PretrainModelCkptPath: 'Experiments/heco_twitter_split_118_run0/train/saved_model/last.ckpt',
+    PretrainModelCkptPath: 'Experiments/heco_twitter_split_118_run1/train/saved_model/last.ckpt',
     PretrainModelConfig: {
       base_model: 'HeCo',
       ModelClass: 'HeCo',
