@@ -69,11 +69,14 @@ def process_config(args):
         config.experiment_group = config.experiment_name
         config.experiment_name += f"_run{args.current_run}"
 
+    config.reset_data = args.reset_data
+
     # config.data_loader.dummy_dataloader = args.dummy_dataloader
     # config.train.batch_size = args.batch_size
     # config.train.scheduler = args.scheduler
     # config.train.lr = args.lr
     # config.train.additional.gradient_clipping = args.clipping
+    
     config.model_config.modules += args.modules
     if args.test_batch_size != -1:
         config.test.batch_size = args.test_batch_size

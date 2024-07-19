@@ -95,6 +95,11 @@ def parse_args(args_list=None):
         type=int,
         default=-1,
     )
+    arg_parser.add_argument(
+        "--reset_data",
+        help="Reload dataset",
+        action="store_true",
+    )
     # ===== Args for pl===== #
     arg_parser.add_argument("--accelerator", type=str, default="gpu")
     arg_parser.add_argument("--devices", type=int, default=1)

@@ -57,7 +57,11 @@ class DataLoaderForGraph(DataLoaderWrapper):
             data_path, "processed", f"{module_config.config.save_or_load_name}.pt"
         )
         data_dict = EasyDict({})
-        if osp.exists(save_or_load_path) and module_config.option == "default":
+        if (
+            osp.exists(save_or_load_path)
+            and module_config.option == "default"
+            and not self.config.reset
+        ):
             data = torch.load(save_or_load_path)
         else:
             os.makedirs(osp.join(data_path, "processed"), exist_ok=True)
@@ -257,7 +261,11 @@ class DataLoaderForGraph(DataLoaderWrapper):
             module_config.path,
             f"split_{module_config.use_column}_{self.config.num_runs}_{module_config.split_ratio.train}_{module_config.split_ratio.valid}_{module_config.split_ratio.test}.pt",
         )
-        if osp.exists(save_or_load_path) and option == "default":
+        if (
+            osp.exists(save_or_load_path)
+            and option == "default"
+            and not self.config.reset_data
+        ):
             loaded_split_masks = torch.load(save_or_load_path)
             assert len(loaded_split_masks) == self.config.num_runs
         else:
@@ -275,15 +283,15 @@ class DataLoaderForGraph(DataLoaderWrapper):
         use_column = module_config.use_column
         target_node_type = self.config.train.additional.target_node_type
 
-        original_x = self.data[use_column][target_node_type].x.clone()
-        label_mask = torch.zeros(self.data[use_column][target_node_type].x.shape)
-        for i in range(label_mask.shape[0]):
-            label_mask[i, :] = self.data[use_column][target_node_type].y[i]
-        label_mask = label_mask.detach().cpu().numpy()
-        label_mask = np.random.normal(label_mask, 0.4, label_mask.shape)
-        label_mask = torch.FloatTensor(label_mask)
-        original_x += label_mask
-        self.data[use_column][target_node_type].x = F.normalize(original_x)
+        # original_x = self.data[use_column][target_node_type].x.clone()
+        # label_mask = torch.zeros(self.data[use_column][target_node_type].x.shape)
+        # for i in range(label_mask.shape[0]):
+        #     label_mask[i, :] = self.data[use_column][target_node_type].y[i]
+        # label_mask = label_mask.detach().cpu().numpy()
+        # label_mask = np.random.normal(label_mask, 0.4, label_mask.shape)
+        # label_mask = torch.FloatTensor(label_mask)
+        # original_x += label_mask
+        # self.data[use_column][target_node_type].x = F.normalize(original_x)
 
         for mode in module_config.config.keys():
             for data_config in module_config.config[mode]:
