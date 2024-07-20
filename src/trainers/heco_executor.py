@@ -58,6 +58,9 @@ class HeCoExecutor(BaseExecutor):
         mask = batch[self.target_node_type].mask
         y_true = batch[self.target_node_type].y
         embs = self.model.get_embeds(batch)
+
+        embs = embs[self.target_node_type]
+
         output = self.classifier(embs)
         logits = F.log_softmax(output, dim=1)
         loss = self.loss_fn(logits[mask], y_true[mask])
@@ -72,30 +75,17 @@ class HeCoExecutor(BaseExecutor):
         return {"loss": loss}
 
     def validation_step(self, batch, batch_idx, dataloader_idx=0):
-        train_loss = self.model(batch)
-        embs = self.model.get_embeds(batch)
-        embs = self.classifier(embs)
-        data_to_return = EasyDict()
-
-        data_to_return["val_loss"] = train_loss.item()
-
-        mask = batch[self.target_node_type].mask
-        y_true = batch[self.target_node_type].y
-
-        logits = F.log_softmax(embs, dim=1)
-        pred_loss = self.loss_fn(logits[mask], y_true[mask])
-        y_pred = torch.argmax(logits, dim=1)
-
-        data_to_return["pred_loss"] = pred_loss.item()
-        data_to_return["y_true"] = y_true[mask].detach().cpu().numpy()
-        data_to_return["y_pred"] = y_pred[mask].detach().cpu().numpy()
-
-        return data_to_return
+        return self._compute_logit(batch, batch_idx, dataloader_idx)
 
     def test_step(self, batch, batch_idx, dataloader_idx=0):
+        return self._compute_logit(batch, batch_idx, dataloader_idx)
+
+    def _compute_logit(self, batch, batch_idx, dataloader_idx):
         train_loss = self.model(batch)
         embs = self.model.get_embeds(batch)
+        embs = embs[self.target_node_type]
         embs = self.classifier(embs)
+
         data_to_return = EasyDict()
 
         data_to_return["val_loss"] = train_loss.item()

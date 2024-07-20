@@ -83,6 +83,7 @@ class HGMAEExecutor(BaseExecutor):
         mask = batch[self.target_node_type].mask
         y_true = batch[self.target_node_type].y
         embs = self.model.get_embeds(batch)
+        embs = embs[self.target_node_type]
         output = self.classifier(embs)
         logits = F.log_softmax(output, dim=1)
         loss = self.loss_fn(logits[mask], y_true[mask])
@@ -95,32 +96,15 @@ class HGMAEExecutor(BaseExecutor):
         self.log_dict(data_to_log, prog_bar=True, logger=True, sync_dist=True)
 
     def validation_step(self, batch, batch_idx, dataloader_idx=0):
-        loss_dict = self.model(batch)
-        embs = self.model.get_embeds(batch)
-        embs = self.classifier(embs)
-        data_to_return = EasyDict()
-        total_loss = 0
-        for loss_name, loss_val in loss_dict.items():
-            data_to_return[loss_name] = loss_val.item()
-            total_loss += loss_val * self.loss_weights[f"{loss_name}_weight"]
-        data_to_return["total_loss"] = total_loss.item()
-
-        mask = batch[self.target_node_type].mask
-        y_true = batch[self.target_node_type].y
-
-        logits = F.log_softmax(embs, dim=1)
-        pred_loss = self.loss_fn(logits[mask], y_true[mask])
-        y_pred = torch.argmax(logits, dim=1)
-
-        data_to_return["pred_loss"] = pred_loss.item()
-        data_to_return["y_true"] = y_true.detach().cpu().numpy()
-        data_to_return["y_pred"] = y_pred.detach().cpu().numpy()
-
-        return data_to_return
+        return self._compute_logit(batch, batch_idx, dataloader_idx)
 
     def test_step(self, batch, batch_idx, dataloader_idx=0):
+        return self._compute_logit(batch, batch_idx, dataloader_idx)
+
+    def _compute_logit(self, batch, batch_idx, dataloader_idx):
         loss_dict = self.model(batch)
         embs = self.model.get_embeds(batch)
+        embs = embs[self.target_node_type]
         embs = self.classifier(embs)
         data_to_return = EasyDict()
         total_loss = 0

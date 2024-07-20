@@ -5,7 +5,7 @@
 #$ -q gpu@@yye7_lab                 # Run on the GPU cluster
 #$ -o ~/Github/GPL-Twitter/Logs/system/HGMAE.log  # Standard output log file
 #$ -l gpu_card=1                    # Request 4 GPU cards
-#$ -N hgmae              # Specify job name
+#$ -N hgmae217              # Specify job name
 
 conda activate llm
 cd ~/Github/GPL-Twitter/
