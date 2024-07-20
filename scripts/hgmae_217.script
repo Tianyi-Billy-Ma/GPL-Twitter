@@ -1,0 +1,12 @@
+#!/bin/bash
+#$ -pe smp 8                       # Specify parallel environment and core size
+#$ -M tma2@nd.edu                   # Email address for job notification
+#$ -m abe                           # Send mail when job begins, ends, and aborts
+#$ -q gpu@@yye7_lab                 # Run on the GPU cluster
+#$ -o ~/Github/GPL-Twitter/Logs/system/HGMAE.log  # Standard output log file
+#$ -l gpu_card=1                    # Request 4 GPU cards
+#$ -N hgmae              # Specify job name
+
+conda activate llm
+cd ~/Github/GPL-Twitter/
+python src/run_main.py  configs/twitter/HGMAE_twitter_split_217.jsonnet --override --opts reset=1
