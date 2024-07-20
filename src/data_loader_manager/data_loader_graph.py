@@ -60,7 +60,7 @@ class DataLoaderForGraph(DataLoaderWrapper):
         if (
             osp.exists(save_or_load_path)
             and module_config.option == "default"
-            and not self.config.reset
+            and not self.config.reset_data
         ):
             data = torch.load(save_or_load_path)
         else:
@@ -284,11 +284,11 @@ class DataLoaderForGraph(DataLoaderWrapper):
         target_node_type = self.config.train.additional.target_node_type
 
         # original_x = self.data[use_column][target_node_type].x.clone()
-        # label_mask = torch.zeros(self.data[use_column][target_node_type].x.shape)
-        # for i in range(label_mask.shape[0]):
-        #     label_mask[i, :] = self.data[use_column][target_node_type].y[i]
-        # label_mask = label_mask.detach().cpu().numpy()
-        # label_mask = np.random.normal(label_mask, 0.4, label_mask.shape)
+        # labels = self.data[use_column][target_node_type].y
+        # x_shape = original_x.shape
+        # label_mask = torch.zeros(x_shape)
+        # label_mask[torch.arange(label_mask.shape[0]), labels] = 1
+        # label_mask = np.random.normal(label_mask, 0.5, size=original_x.shape)
         # label_mask = torch.FloatTensor(label_mask)
         # original_x += label_mask
         # self.data[use_column][target_node_type].x = F.normalize(original_x)

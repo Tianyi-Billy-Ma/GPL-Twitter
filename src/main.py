@@ -245,17 +245,20 @@ if __name__ == "__main__":
         # "configs/twitter/HeCo_twitter_split_118.jsonnet",
         # "configs/twitter/ReWeight_twitter_split_118.jsonnet",
         # "configs/twitter/Smote_twitter_split_118.jsonnet",
+        # "configs/twitter/Smote_twitter_split_226.jsonnet",
         # "configs/twitter/OverSampling_twitter_split_118.jsonnet",
         "configs/twitter/OverSampling_twitter_split_226.jsonnet",
         "--mode",
-        "create_data",
+        "run",
         "--override",
         "--num_runs",
-        "1",
+        "5",
         # "--log_prediction_tables",
-        "--disable_wandb_logging",
+        # "--disable_wandb_logging",
         "--opts",
         "reset=1",
+        "train.additional.early_stop_patience=50",
+        # "train.additional.save_top_k_metric=valid/verSampling_twitter.valid/f1_macro",
     ]
 
     run(arg_list)

@@ -238,17 +238,20 @@ class HGMAE(nn.Module):
 
     def get_embeds(self, batch=None, **kwargs):
         if batch:
-            feat = batch[self.target_node_type].x
+            feats = {self.target_node_type: batch[self.target_node_type].x}
             mp_edge_index = [
                 batch[mp_type].edge_index for mp_type in batch.metapath_dict
             ]
         elif "batch" in kwargs:
             batch = kwargs["batch"]
         else:
-            feat = kwargs["feat"]
+            feats = kwargs["feats"]
             mp_edge_index = kwargs["mp_edge_index"]
-        rep, _ = self.encoder(feat, mp_edge_index)
-        return rep.detach()
+        rep, _ = self.encoder(feats[self.target_node_type], mp_edge_index)
+
+        zs = {node_type: feat for node_type, feat in feats.items()}
+        zs[self.target_node_type] = rep.detach()
+        return zs
 
     @property
     def enc_params(self):

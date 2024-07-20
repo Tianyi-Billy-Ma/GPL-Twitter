@@ -1,7 +1,5 @@
 local base_env = import '../base_env.jsonnet';
 
-local num_classes = 2;
-local drop_edge_rate = 0.5;
 
 local seed = 3;
 local train_epoch = 500;
@@ -9,65 +7,30 @@ local train_batch_size = 128;
 local valid_batch_size = 128;
 local test_batch_size = 128;
 
-local dropout = 0.8;
+local dropout = 0.3;
 local save_interval = 1;
 
 local override = {
 
   platform_type: 'pytorch',
   ignore_pretrained_weights: [],
-  experiment_name: 'hgmae_twitter_split_118',
+  experiment_name: 'smote_twitter_split_226',
   seed: seed,
   model_config: {
-    base_model: 'HGMAE',
-    ModelClass: 'HGMAE',
-    EncoderModelClass: 'HAN',
-    EncoderModelConfig: {
-      drop_edge_rate: drop_edge_rate,
-      num_layers: 2,
+    base_model: 'ReWeight',
+    SmoteClass: 'SMOTE',
+    SmoteClassConfig: {
+      hidden_dim: 768,
+      k: 3,
+    },
+    ModelClass: 'MLP',
+    ModelClassConfig: {
       input_dim: 768,
       hidden_dim: 256,
-      num_heads: 4,
-      activation: 'prelu',
-      dropout: dropout,
-      norm: 'batchnorm',
+      output_dim: 4,
+      num_layers: 3,
+      dropout: 0.5,
     },
-    DecoderModelClass: 'HAN',
-    DecoderModelConfig: {
-      num_layers: 2,
-      input_dim: 256,
-      hidden_dim: 256,
-      output_dim: 768,
-      num_heads: 1,
-      activation: 'prelu',
-      dropout: dropout,
-      norm: 'batchnorm',
-    },
-    MPModelConfig: {
-      edge_mask_rate: 0.5,
-      feat_mask_rate: 0.5,
-      edge_alpha_l: 3,
-      feature_alpha_l: 2,
-      hidden_dim: 64,
-      dropout: 0.2,
-    },
-    ClassifierModelClass: 'LogReg',
-    ClassifierModelConfig: {
-      input_dim: 256,
-      num_classes: num_classes,
-    },
-    additional: {
-      loss_fn: 'sce',
-      alpha_l: 3,
-      replace_rate: 0.3,
-      leave_unchanged: 0.2,
-    },
-    loss_weights: {
-      tar_loss_weight: 0.3,
-      pfp_loss_weight: 0.3,
-      mer_loss_weight: 0.4,
-    },
-
   },
   data_loader: {
     type: 'DataLoaderForGraph',
@@ -75,17 +38,17 @@ local override = {
     additional: {},
     dataset_modules: {
 
-      module_list: ['LoadTwitterData', 'LoadBinaryData', 'LoadPositionEmb', 'LoadSplits', 'LoadDataLoader'],
+      module_list: ['LoadTwitterData', 'LoadBinaryData', 'LoadSplits', 'LoadDataLoader'],
       module_dict:
         {
           LoadTwitterData: {
             type: 'LoadTwitterData',
-            option: 'default',
+            option: 'reload',
             config: {
-              preprocess: ['build_metapath_from_config'],
+              preprocess: ['build_baseline', 'build_metapath'],
               name: 'twitter',
               path: 'TwitterData/',
-              save_or_load_name: 'twitter',
+              save_or_load_name: 'twitter_baseline',
               metapaths: [
                 [
                   ['user', 'post-->', 'tweet'],
@@ -107,25 +70,15 @@ local override = {
           LoadBinaryData: {
             use_column: 'twitter',
           },
-          LoadPositionEmb: {
-            type: 'LoadPositionEmb',
-            option: 'default',
-            use_column: 'twitter',
-            path: 'TwitterData/processed/',
-            config: {
-              node_type: 'user',
-              file_name: 'position_emb.pt',
-            },
-          },
           LoadSplits: {
             type: 'LoadSplits',
             option: 'reload',
             path: 'TwitterData/processed/',
             use_column: 'twitter',
             split_ratio: {
-              train: 0.1,
-              valid: 0.1,
-              test: 0.8,
+              train: 0.2,
+              valid: 0.2,
+              test: 0.6,
             },
           },
           LoadDataLoader: {
@@ -135,24 +88,24 @@ local override = {
             config: {
               train: [
                 {
-                  dataset_type: 'HGMAE_twitter',
+                  dataset_type: 'Smote_twitter',
                   split: 'train',
 
                 },
               ],
               valid: [
                 {
-                  dataset_type: 'HGMAE_twitter',
+                  dataset_type: 'Smote_twitter',
                   split: 'valid',
                 },
               ],
               test: [
                 {
-                  dataset_type: 'HGMAE_twitter',
+                  dataset_type: 'Smote_twitter',
                   split: 'valid',
                 },
                 {
-                  dataset_type: 'HGMAE_twitter',
+                  dataset_type: 'Smote_twitter',
                   split: 'test',
                 },
               ],
@@ -162,7 +115,7 @@ local override = {
     },
   },
   train: {
-    type: 'HGMAEExecutor',
+    type: 'SmoteExecutor',
     epochs: train_epoch,
     batch_size: train_batch_size,
     lr: 0.005,
@@ -170,14 +123,13 @@ local override = {
     scheduler: 'none',
     load_epoch: -1,
     load_model_path: '',
-    load_best_model: 0,
+    load_best_model: true,
     save_interval: save_interval,
     additional: {
-      // save_top_k_metric: 'valid/HGMAE_twitter.valid/f1_macro',
-      save_top_k_metric: 'train/total_loss',
+      save_top_k_metric: 'valid/Smote_twitter.valid/f1_macro',
       save_top_k_mode: 'max',
       target_node_type: 'user',
-      early_stop_patience: 50,
+      early_stop_patience: 10,
     },
   },
   valid: {

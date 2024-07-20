@@ -1,55 +1,48 @@
 local base_env = import '../base_env.jsonnet';
 
 local num_classes = 2;
-local drop_edge_rate = 0.5;
-
 local seed = 3;
 local train_epoch = 500;
 local train_batch_size = 128;
 local valid_batch_size = 128;
 local test_batch_size = 128;
 
-local dropout = 0.8;
+local dropout = 0.3;
 local save_interval = 1;
 
 local override = {
 
   platform_type: 'pytorch',
   ignore_pretrained_weights: [],
-  experiment_name: 'hgmae_twitter_split_118',
+  experiment_name: 'heco_twitter_split_217',
   seed: seed,
   model_config: {
-    base_model: 'HGMAE',
-    ModelClass: 'HGMAE',
-    EncoderModelClass: 'HAN',
-    EncoderModelConfig: {
-      drop_edge_rate: drop_edge_rate,
-      num_layers: 2,
-      input_dim: 768,
-      hidden_dim: 256,
-      num_heads: 4,
-      activation: 'prelu',
-      dropout: dropout,
-      norm: 'batchnorm',
+    base_model: 'HeCo',
+    ModelClass: 'HeCo',
+    MappingModelClass: 'Linear',
+    MappingModelConfig: {
+      in_features: 768,
+      out_features: 256,
+      bias: true,
     },
-    DecoderModelClass: 'HAN',
-    DecoderModelConfig: {
-      num_layers: 2,
-      input_dim: 256,
+    ContrastModelClass: 'Contrast',
+    ContrastModelConfig: {
       hidden_dim: 256,
-      output_dim: 768,
-      num_heads: 1,
-      activation: 'prelu',
-      dropout: dropout,
-      norm: 'batchnorm',
+      tau: 0.5,
+      lam: 0.2,
     },
+    MPModelClass: 'MPEncoder',
     MPModelConfig: {
-      edge_mask_rate: 0.5,
-      feat_mask_rate: 0.5,
-      edge_alpha_l: 3,
-      feature_alpha_l: 2,
-      hidden_dim: 64,
-      dropout: 0.2,
+      num_metapaths: 3,
+      hidden_dim: 256,
+      attention_dropout: 0.2,
+    },
+    SCModelClass: 'SCEncoder',
+    SCModelConfig: {
+      hidden_dim: 256,
+      sample_rate: [5, 5],
+      num_neighbors: 2,
+      attention_dropout: 0.4,
     },
     ClassifierModelClass: 'LogReg',
     ClassifierModelConfig: {
@@ -57,17 +50,8 @@ local override = {
       num_classes: num_classes,
     },
     additional: {
-      loss_fn: 'sce',
-      alpha_l: 3,
-      replace_rate: 0.3,
-      leave_unchanged: 0.2,
+      dropout: dropout,
     },
-    loss_weights: {
-      tar_loss_weight: 0.3,
-      pfp_loss_weight: 0.3,
-      mer_loss_weight: 0.4,
-    },
-
   },
   data_loader: {
     type: 'DataLoaderForGraph',
@@ -75,17 +59,17 @@ local override = {
     additional: {},
     dataset_modules: {
 
-      module_list: ['LoadTwitterData', 'LoadBinaryData', 'LoadPositionEmb', 'LoadSplits', 'LoadDataLoader'],
+      module_list: ['LoadTwitterData', 'LoadBinaryData', 'LoadSplits', 'LoadDataLoader'],
       module_dict:
         {
           LoadTwitterData: {
             type: 'LoadTwitterData',
             option: 'default',
             config: {
-              preprocess: ['build_metapath_from_config'],
+              preprocess: ['build_baseline', 'build_metapath'],
               name: 'twitter',
               path: 'TwitterData/',
-              save_or_load_name: 'twitter',
+              save_or_load_name: 'twitter_baseline',
               metapaths: [
                 [
                   ['user', 'post-->', 'tweet'],
@@ -107,25 +91,15 @@ local override = {
           LoadBinaryData: {
             use_column: 'twitter',
           },
-          LoadPositionEmb: {
-            type: 'LoadPositionEmb',
-            option: 'default',
-            use_column: 'twitter',
-            path: 'TwitterData/processed/',
-            config: {
-              node_type: 'user',
-              file_name: 'position_emb.pt',
-            },
-          },
           LoadSplits: {
             type: 'LoadSplits',
             option: 'reload',
             path: 'TwitterData/processed/',
             use_column: 'twitter',
             split_ratio: {
-              train: 0.1,
+              train: 0.2,
               valid: 0.1,
-              test: 0.8,
+              test: 0.7,
             },
           },
           LoadDataLoader: {
@@ -135,24 +109,24 @@ local override = {
             config: {
               train: [
                 {
-                  dataset_type: 'HGMAE_twitter',
+                  dataset_type: 'HeCo_twitter',
                   split: 'train',
 
                 },
               ],
               valid: [
                 {
-                  dataset_type: 'HGMAE_twitter',
+                  dataset_type: 'HeCo_twitter',
                   split: 'valid',
                 },
               ],
               test: [
                 {
-                  dataset_type: 'HGMAE_twitter',
+                  dataset_type: 'HeCo_twitter',
                   split: 'valid',
                 },
                 {
-                  dataset_type: 'HGMAE_twitter',
+                  dataset_type: 'HeCo_twitter',
                   split: 'test',
                 },
               ],
@@ -162,7 +136,7 @@ local override = {
     },
   },
   train: {
-    type: 'HGMAEExecutor',
+    type: 'HeCoExecutor',
     epochs: train_epoch,
     batch_size: train_batch_size,
     lr: 0.005,
@@ -173,11 +147,11 @@ local override = {
     load_best_model: 0,
     save_interval: save_interval,
     additional: {
-      // save_top_k_metric: 'valid/HGMAE_twitter.valid/f1_macro',
-      save_top_k_metric: 'train/total_loss',
+      save_top_k_metric: 'valid/HeCo_twitter.valid/f1_macro',
+      // save_top_k_metric: 'train/loss',
       save_top_k_mode: 'max',
       target_node_type: 'user',
-      early_stop_patience: 50,
+      early_stop_patience: 40,
     },
   },
   valid: {

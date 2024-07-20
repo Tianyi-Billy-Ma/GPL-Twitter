@@ -15,6 +15,7 @@ class OverSampling(nn.Module):
             if i != dominant_class:
                 # calculate the amount of synthetic data to generate
                 N = (n_occ - occ[i]) * 100 / occ[i]
+                # N = n_occ - occ[i]
                 candidates = X[y == i]
                 selection = torch.randint(
                     0, candidates.shape[0], (int(N),), device=X.device

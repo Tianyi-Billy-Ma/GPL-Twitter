@@ -16,7 +16,7 @@ local override = {
 
   platform_type: 'pytorch',
   ignore_pretrained_weights: [],
-  experiment_name: 'hgmae_twitter_split_118',
+  experiment_name: 'hgmae_twitter_split_217',
   seed: seed,
   model_config: {
     base_model: 'HGMAE',
@@ -123,9 +123,9 @@ local override = {
             path: 'TwitterData/processed/',
             use_column: 'twitter',
             split_ratio: {
-              train: 0.1,
+              train: 0.2,
               valid: 0.1,
-              test: 0.8,
+              test: 0.7,
             },
           },
           LoadDataLoader: {

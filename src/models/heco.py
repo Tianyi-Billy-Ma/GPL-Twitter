@@ -56,7 +56,7 @@ class HeCo(nn.Module):
 
     def get_embeds(self, batch=None, **kwargs):
         if batch:
-            feat = batch[self.target_node_type].x
+            feats = {node_type: batch[node_type].x for node_type in batch.x_dict}
             mp_edge_index = [
                 batch[mp_type].edge_index for mp_type in batch.metapath_dict
             ]
@@ -67,12 +67,17 @@ class HeCo(nn.Module):
                 batch[mp_type].edge_index for mp_type in batch.metapath_dict
             ]
         else:
-            feat = kwargs["feat"]
+            feats = kwargs["feats"]
             mp_edge_index = kwargs["mp_edge_index"]
 
-        z_mp = F.elu(self.mappings[0](feat))
-        z_mp = self.mp(z_mp, mp_edge_index)
-        return z_mp.detach()
+        zs = {
+            node_type: F.elu(self.mappings[idx](feat))
+            for idx, (node_type, feat) in enumerate(feats.items())
+        }
+        # z_mp = F.elu(self.mappings[0](feat))
+        z_mp = self.mp(zs[self.target_node_type], mp_edge_index)
+        zs[self.target_node_type] = z_mp
+        return zs
 
 
 class Contrast(nn.Module):
@@ -120,14 +125,12 @@ class Contrast(nn.Module):
         ret = ret.mean()
 
         return ret
-    
+
     def finetune(self, z1, z2, labels):
         z1_project = self.proj(z1)
         z2_project = self.proj(z2)
-        
+
         sim_matrix = self.sim(z1_project, z2_project)
-        
-        
 
         # matrix_mp2sc = self.sim(z_proj_mp, z_proj_sc)
         # matrix_sc2mp = matrix_mp2sc.t()

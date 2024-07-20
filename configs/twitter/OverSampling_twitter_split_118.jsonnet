@@ -34,7 +34,7 @@ local override = {
     additional: {},
     dataset_modules: {
 
-      module_list: ['LoadTwitterData', 'LoadSplits', 'LoadDataLoader'],
+      module_list: ['LoadTwitterData', 'LoadBinaryData', 'LoadSplits', 'LoadDataLoader'],
       module_dict:
         {
           LoadTwitterData: {
@@ -62,6 +62,9 @@ local override = {
                 ],
               ],
             },
+          },
+          LoadBinaryData: {
+            use_column: 'twitter',
           },
           LoadSplits: {
             type: 'LoadSplits',

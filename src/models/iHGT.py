@@ -45,19 +45,6 @@ class iHGT(nn.Module):
             torch.randn((self.num_classes, self.class_token_dim))
         )
 
-        self.linear_mapping = nn.ModuleDict(
-            {
-                node_type: MLP(
-                    self.config.MLP_input_dim,
-                    self.config.MLP_hidden_dim,
-                    self.config.MLP_output_dim,
-                    self.config.MLP_num_layers,
-                    self.config.dropout,
-                )
-                for node_type in self.node_types
-            }
-        )
-
         self.nei_PMAs = nn.ModuleDict(
             {
                 node_type: PMA(
@@ -111,7 +98,7 @@ class iHGT(nn.Module):
     def reset_parameters(self, batch, pretrain_model):
         mask = batch[self.target_node_type].mask
 
-        x = pretrain_model.get_embeds(batch)
+        x = pretrain_model.get_embeds(batch)[self.target_node_type]
         x = x[mask]
         y = batch[self.target_node_type].y[mask]
 
@@ -120,9 +107,6 @@ class iHGT(nn.Module):
 
         for _, emb_layer in self.node_type_tokens.items():
             emb_layer.data.uniform_(-1, 1)
-
-        for _, layer in self.linear_mapping.items():
-            layer.reset_parameters()
 
         for _, layer in self.nei_PMAs.items():
             layer.reset_parameters()
@@ -158,23 +142,42 @@ class iHGT(nn.Module):
             )
             prompt_node_embs[node_type] = curr_node_type_emb
 
-        pretrained_node_embs = {}
-        for node_type, layer in self.linear_mapping.items():
-            if node_type == self.target_node_type:
-                pretrained_node_type_emb = model.get_embeds(
-                    feat=prompt_node_embs[node_type],
-                    mp_edge_index=[
-                        batch[mp_type].edge_index for mp_type in batch.metapath_dict
-                    ],
-                )
-            else:
-                pretrained_node_type_emb = layer(prompt_node_embs[node_type])
+        mp_edge_index = [batch[mp_type].edge_index for mp_type in batch.metapath_dict]
+        pretrained_node_embs = model.get_embeds(
+            feats=prompt_node_embs, mp_edge_index=mp_edge_index
+        )
 
-            pretrained_node_embs[node_type] = pretrained_node_type_emb
+        nei_indices = batch[self.target_node_type].nei_index
+        x_na = self.neighbor_aggregation(pretrained_node_embs, nei_indices)
 
+        mp_edge_indices = [
+            batch[metapath_type].edge_index for metapath_type in batch.metapath_dict
+        ]
+        x_mp = self.metapath_aggregation(pretrained_node_embs, mp_edge_indices)
+
+        # We only need the training node embeddings here
+        x_out = self.linear(torch.cat([x_na, x_mp], dim=1))
+        x_out = F.leaky_relu(x_out)
+        # x_out = F.leaky_relu(x_mp)
+
+        y_train = y[mask]
+        x_out = x_out[mask]
+        # x_train = x_out
+        # self.smote
+        x_train, y_train = self.over_sampling(x_out, y_train)
+        loss, logits = self.contrast_head(x_train, self.class_tokens, y_train)
+
+        logits = logits[: x_out.shape[0]]
+
+        data_to_return = EasyDict(x=x_out, loss=loss, logits=logits)
+
+        return data_to_return
+
+    def neighbor_aggregation(self, pretrained_node_embs, nei_indices):
         # Neighbor aggregation:
         x_na = {}
         target_node_embs = pretrained_node_embs[self.target_node_type]
+
         for node_type in self.node_types:
             if node_type == self.target_node_type:
                 continue
@@ -184,7 +187,7 @@ class iHGT(nn.Module):
             #     batch[self.target_node_type].nei_index[node_type][idx]
             #     for idx in mask.nonzero().squeeze()
             # ]
-            nei_index = batch[self.target_node_type].nei_index[node_type]
+            nei_index = nei_indices[node_type]
 
             for batch_idx in range(0, len(nei_index), self.batch_size):
                 batch_nei_index = nei_index[
@@ -225,46 +228,31 @@ class iHGT(nn.Module):
         x_na = torch.stack(
             [curr_x_na for neighbor_type, curr_x_na in x_na.items()], dim=1
         )
-        x_na, att_na = self.na_semantic_layer(x_na)
+        x_na, _ = self.na_semantic_layer(x_na)
+        return x_na
 
+    def metapath_aggregation(self, pretrained_node_embs, mp_edge_indices):
         # Metapath aggregation:
-        x_mp = [[] for _ in batch.metapath_dict.keys()]
-        for metapath_idx, metapath_type in enumerate(batch.metapath_dict.keys()):
-            curr_x_mp = []
-            mp_edge_index = batch[metapath_type].edge_index
+
+        x_mp = []
+        num_nodes = pretrained_node_embs[self.target_node_type].shape[0]
+        for metapath_idx, mp_edge_index in enumerate(mp_edge_indices):
             pma = self.mp_PMAs[metapath_idx]
             curr_x_mp = pma(
                 pretrained_node_embs[self.target_node_type],
                 pretrained_node_embs[self.target_node_type],
                 mp_edge_index,
-                num_nodes=pretrained_node_embs[self.target_node_type].shape[0],
+                num_nodes=num_nodes,
             )
             curr_x_mp = F.relu(curr_x_mp)
             curr_x_mp = F.dropout(
                 curr_x_mp, p=self.config.dropout, training=self.training
             )
-            x_mp[metapath_idx] = curr_x_mp
+            x_mp.append(curr_x_mp)
 
         x_mp = torch.stack(x_mp, dim=1)
-        x_mp, att_mp = self.mp_semantic_layer(x_mp)
-
-        # We only need the training node embeddings here
-        x_out = self.linear(torch.cat([x_na, x_mp], dim=1))
-        x_out = F.leaky_relu(x_out)
-
-        y_train = y[mask]
-        x_out = x_out[mask]
-
-        # self.smote
-        x_train, y_train = self.over_sampling(x_out, y_train)
-
-        loss, logits = self.contrast_head(x_train, self.class_tokens, y_train)
-
-        logits = logits[: x_out.shape[0]]
-
-        data_to_return = EasyDict(x=x_out, loss=loss, logits=logits)
-
-        return data_to_return
+        x_mp, _ = self.mp_semantic_layer(x_mp)
+        return x_mp
 
 
 class OverSampling(nn.Module):
@@ -279,7 +267,8 @@ class OverSampling(nn.Module):
         for i in range(len(occ)):
             if i != dominant_class:
                 # calculate the amount of synthetic data to generate
-                N = (n_occ - occ[i]) * 100 / occ[i]
+                # N = (n_occ - occ[i]) * 100 / occ[i]
+                N = int((n_occ - occ[i]) * 0.5)
                 candidates = X[y == i]
                 selection = torch.randint(
                     0, candidates.shape[0], (int(N),), device=X.device
