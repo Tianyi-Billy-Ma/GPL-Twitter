@@ -283,14 +283,83 @@ class DataLoaderForGraph(DataLoaderWrapper):
         use_column = module_config.use_column
         target_node_type = self.config.train.additional.target_node_type
 
-        # original_x = self.data[use_column][target_node_type].x.clone()
-        # labels = self.data[use_column][target_node_type].y
-        # x_shape = original_x.shape
-        # label_mask = torch.zeros(x_shape)
-        # label_mask[torch.arange(label_mask.shape[0]), labels] = 1
-        # label_mask = np.random.normal(label_mask, 0.5, size=original_x.shape)
-        # label_mask = torch.FloatTensor(label_mask)
-        # original_x += label_mask
+        original_x = self.data[use_column][target_node_type].x.clone()
+        labels = self.data[use_column][target_node_type].y
+
+        x_shape = original_x.shape
+        label_mask = torch.zeros(x_shape)
+        label_mask[torch.arange(label_mask.shape[0]), labels] = 1
+        label_mask = np.random.normal(label_mask, 0.2, size=original_x.shape)
+        label_mask = torch.FloatTensor(label_mask)
+        original_x = original_x + label_mask
+        self.data[use_column][target_node_type].x = F.normalize(original_x)
+
+        minority_class_idx = torch.where(labels == 1)[0]
+        minority_class_x = original_x[minority_class_idx]
+        synthetic_x = torch.ones(minority_class_x.shape)
+        synthetic_x = np.random.normal(synthetic_x, 0.2, size=synthetic_x.shape)
+        synthetic_x = torch.FloatTensor(synthetic_x)
+        synthetic_x = F.normalize(synthetic_x)
+
+        # Add synthetic data to the original data
+        new_x = torch.cat([original_x, synthetic_x], dim=0)
+        new_y = torch.cat([labels, torch.ones(len(minority_class_idx))], dim=0).long()
+        self.data[use_column][target_node_type].x = new_x
+        self.data[use_column][target_node_type].y = new_y
+
+        # Update New Train Mask
+        train_mask = self.splits[use_column]["train"]
+        synthetic_mask = torch.BoolTensor([True] * synthetic_x.shape[0])
+        new_train_mask = torch.cat([train_mask, synthetic_mask], dim=0)
+        self.splits[use_column]["train"] = new_train_mask
+
+        for mode in ["valid", "test"]:
+            curr_mask = self.splits[use_column][mode]
+            new_mask = torch.cat(
+                [curr_mask, torch.BoolTensor([False] * synthetic_x.shape[0])], dim=0
+            )
+            self.splits[use_column][mode] = new_mask
+
+        node_mapping = {
+            minority_class_idx[i]: i for i in range(minority_class_idx.shape[0])
+        }
+
+        def add_edges(edge_index, view):
+            syn_edge_index = edge_index.clone()
+            for old, new in node_mapping.items():
+                syn_edge_index[view, edge_index[view] == old] = new
+            return syn_edge_index
+
+        # Update Metapath
+        metapath_dict = self.data[use_column].metapath_dict
+        for mp_type in metapath_dict.keys():
+            mp_edge_index = self.data[use_column][mp_type].edge_index
+
+            edge_mask = torch.isin(mp_edge_index[0], minority_class_idx)
+            old_edge_index = mp_edge_index[:, edge_mask]
+            syn_edge_index_0 = add_edges(old_edge_index, 0)
+            syn_edge_index_0[0] += original_x.shape[0]
+
+            edge_mask = torch.isin(mp_edge_index[1], minority_class_idx)
+            old_edge_index = mp_edge_index[:, edge_mask]
+            syn_edge_index_1 = add_edges(old_edge_index, 1)
+            syn_edge_index_1[1] += original_x.shape[0]
+
+            syn_edge_index = torch.cat([syn_edge_index_0, syn_edge_index_1], dim=1)
+            new_edge_index = torch.cat([mp_edge_index, syn_edge_index], dim=1)
+            self.data[use_column][mp_type].edge_index = new_edge_index
+
+        # Update edge neighbors:
+        # nei_indices = self.data[use_column][target_node_type].nei_index
+        # for node_type in nei_indices.keys():
+        #     nei_index = nei_indices[node_type]
+        #     for old in minority_class_idx:
+        #         nei_index.append(nei_index[old])
+        #     self.data[use_column][target_node_type].nei_index[node_type] = nei_index
+
+        # synthetic_x = original_x + label_mask
+        # synthetic_
+        # new_x = torch.cat([original_x, synthetic_x], dim=0)
         # self.data[use_column][target_node_type].x = F.normalize(original_x)
 
         for mode in module_config.config.keys():

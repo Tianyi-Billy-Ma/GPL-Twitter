@@ -147,8 +147,8 @@ class iHGT(nn.Module):
             feats=prompt_node_embs, mp_edge_index=mp_edge_index
         )
 
-        nei_indices = batch[self.target_node_type].nei_index
-        x_na = self.neighbor_aggregation(pretrained_node_embs, nei_indices)
+        # nei_indices = batch[self.target_node_type].nei_index
+        # x_na = self.neighbor_aggregation(pretrained_node_embs, nei_indices)
 
         mp_edge_indices = [
             batch[metapath_type].edge_index for metapath_type in batch.metapath_dict
@@ -156,15 +156,17 @@ class iHGT(nn.Module):
         x_mp = self.metapath_aggregation(pretrained_node_embs, mp_edge_indices)
 
         # We only need the training node embeddings here
-        x_out = self.linear(torch.cat([x_na, x_mp], dim=1))
-        x_out = F.leaky_relu(x_out)
+        # x_out = self.linear(torch.cat([x_na, x_mp], dim=1))
+        # x_out = F.leaky_relu(x_out)
         # x_out = F.leaky_relu(x_mp)
 
+        x_out = F.leaky_relu(x_mp)
         y_train = y[mask]
-        x_out = x_out[mask]
+        x_train = x_out[mask]
         # x_train = x_out
         # self.smote
-        x_train, y_train = self.over_sampling(x_out, y_train)
+        # x_train, y_train = self.over_sampling(x_train, y_train)
+
         loss, logits = self.contrast_head(x_train, self.class_tokens, y_train)
 
         logits = logits[: x_out.shape[0]]
