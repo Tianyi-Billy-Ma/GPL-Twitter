@@ -147,8 +147,8 @@ local override = {
     load_best_model: 0,
     save_interval: save_interval,
     additional: {
-      save_top_k_metric: 'valid/HeCo_twitter.valid/f1_macro',
-      // save_top_k_metric: 'train/loss',
+      // save_top_k_metric: 'valid/HeCo_twitter.valid/f1_macro',
+      save_top_k_metric: 'train/loss',
       save_top_k_mode: 'max',
       target_node_type: 'user',
       early_stop_patience: 40,
