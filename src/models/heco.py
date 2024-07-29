@@ -183,7 +183,7 @@ class Attention(nn.Module):
             beta.append(attn_curr.matmul(sp.t()))
         beta = torch.cat(beta, dim=-1).view(-1)
         beta = self.softmax(beta)
-        print("mp ", beta.data.cpu().numpy())  # semantic attention
+        # print("mp ", beta.data.cpu().numpy())  # semantic attention
         z_mp = 0
         for i in range(len(embeds)):
             z_mp += embeds[i] * beta[i]
@@ -214,7 +214,7 @@ class inter_att(nn.Module):
             beta.append(attn_curr.matmul(sp.t()))
         beta = torch.cat(beta, dim=-1).view(-1)
         beta = self.softmax(beta)
-        print("sc ", beta.data.cpu().numpy())  # type-level attention
+        # print("sc ", beta.data.cpu().numpy())  # type-level attention
         z_mc = 0
         for i in range(len(embeds)):
             z_mc += embeds[i] * beta[i]
